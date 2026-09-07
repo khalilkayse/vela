@@ -1,0 +1,7 @@
+[install]
+peer = true
+exact = false
+
+[run]
+# `bun run` falls back to npm scripts in package.json.
+shell = "system"

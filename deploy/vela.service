@@ -1,0 +1,17 @@
+[Unit]
+Description=Vela storefront
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/vela
+EnvironmentFile=/var/www/vela/.env
+Environment=PORT=3000
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/bun /var/www/vela/.output/server/index.mjs
+Restart=on-failure
+RestartSec=4
+
+[Install]
+WantedBy=multi-user.target
