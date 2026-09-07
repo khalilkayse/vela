@@ -49,7 +49,7 @@ npm run typecheck
 | Variable | What to put |
 |---|---|
 | `DATABASE_URL` | `postgresql://USER:PASSWORD@HOST:5432/DBNAME` from the Postgres service. Same-project host is the **database service name**, not `localhost`. |
-| `BETTER_AUTH_URL` | Public origin, e.g. `https://vela.example.com` (no trailing slash). |
+| `BETTER_AUTH_URL` | Public origin, e.g. `https://shop.sifalo.cloud` (no trailing slash). Must match the URL in the browser or sign-in fails with "Invalid origin". |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
 | `VITE_AUTH_ENABLED` | `true` (needed at **build** time) |
 | `NITRO_PRESET` | `node-server` |

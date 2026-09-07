@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   adminConnectionString,
+  describeDatabaseUrl,
   parseDatabaseName,
   quoteIdent,
 } from "./migrate.mjs";
@@ -37,4 +38,11 @@ test("quoteIdent quotes and escapes identifiers", () => {
   assert.equal(quoteIdent('ve"la'), '"ve""la"');
   assert.throws(() => quoteIdent(""), /Invalid database name/);
   assert.throws(() => quoteIdent("a".repeat(64)), /Invalid database name/);
+});
+
+test("describeDatabaseUrl redacts the password", () => {
+  assert.equal(
+    describeDatabaseUrl("postgresql://u:secret@db.internal:5432/sifalo_cloud_shop"),
+    "postgresql://u@db.internal:5432/sifalo_cloud_shop",
+  );
 });

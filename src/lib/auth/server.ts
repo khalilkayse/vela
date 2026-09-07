@@ -85,13 +85,59 @@ const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET
 export const authConfigured =
   !authDisabled && Boolean(grokClientId && grokClientSecret);
 
+/** Strip trailing slashes and accept a host without a scheme. */
+function normalizeOrigin(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim().replace(/\/+$/, "");
+  if (!trimmed) return undefined;
+  try {
+    const url = trimmed.includes("://") ? new URL(trimmed) : new URL(`https://${trimmed}`);
+    return url.origin;
+  } catch {
+    return trimmed;
+  }
+}
+
+function hostFromOrigin(origin: string): string | undefined {
+  try {
+    return new URL(origin).host;
+  } catch {
+    return undefined;
+  }
+}
+
+function headerFirst(request: Request | undefined, name: string): string | undefined {
+  const raw = request?.headers.get(name);
+  if (!raw) return undefined;
+  const value = raw.split(",")[0]?.trim();
+  return value || undefined;
+}
+
+/** Origins implied by the reverse proxy (Dokploy TLS → app on :3000). */
+function originsFromRequest(request?: Request): string[] {
+  if (!request) return [];
+  const host = headerFirst(request, "x-forwarded-host") || headerFirst(request, "host");
+  if (!host) return [];
+  const proto = (headerFirst(request, "x-forwarded-proto") || "https").replace(/:$/, "");
+  const hostname = host.replace(/:\d+$/, "");
+  return [`${proto}://${host}`, `https://${hostname}`, `http://${hostname}`];
+}
+
 // This app's own Better Auth origin. When deployed the deployer injects the
 // public URL. In the sandbox live preview there's no fixed URL (each preview gets
 // a dynamic `*.grok-sandbox.com` host), so we hand Better Auth a dynamic baseURL:
 // it derives the origin per-request from the (proxied) host, validated against the
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
-const explicitBaseURL = env("BETTER_AUTH_URL");
+const explicitBaseURL = normalizeOrigin(env("BETTER_AUTH_URL") || env("APP_URL"));
+const extraTrustedOrigins = (env("BETTER_AUTH_TRUSTED_ORIGINS") ?? "")
+  .split(",")
+  .map((part) => normalizeOrigin(part))
+  .filter((part): part is string => Boolean(part));
+const productionHosts = [explicitBaseURL, ...extraTrustedOrigins]
+  .map((origin) => (origin ? hostFromOrigin(origin) : undefined))
+  .filter((host): host is string => Boolean(host));
+const databaseUrl = env("DATABASE_URL");
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
@@ -105,8 +151,16 @@ const LOCAL_DEV_ORIGINS: string[] = [
 ];
 const baseURL = explicitBaseURL ?? {
   // Include loopback hosts so dynamic baseURL resolves for local email/password
-  // (not only the preview wildcard).
-  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
+  // (not only the preview wildcard). Deployed behind Dokploy, `*` lets the
+  // request Host / X-Forwarded-Host become the public origin (shop.sifalo.cloud).
+  allowedHosts: [
+    ...previewAllowedHosts,
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+    ...productionHosts,
+    ...(databaseUrl ? ["*"] : []),
+  ],
   // `auto` → trust both http:// and https:// expansions of allowedHosts
   // (preview is https; local dev is http).
   protocol: "auto" as const,
@@ -115,17 +169,22 @@ const baseURL = explicitBaseURL ?? {
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
-const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...LOCAL_DEV_ORIGINS,
-    ];
+const trustedOrigins = async (request?: Request) => [
+  ...(explicitBaseURL ? [explicitBaseURL] : []),
+  ...extraTrustedOrigins,
+  ...LOCAL_DEV_ORIGINS,
+  ...previewAllowedHosts,
+  ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+  ...originsFromRequest(request),
+];
 
-const databaseUrl = env("DATABASE_URL");
+if (databaseUrl && !explicitBaseURL) {
+  console.warn(
+    "[auth] BETTER_AUTH_URL is not set. Set it to your public origin with no trailing slash, e.g. BETTER_AUTH_URL=https://shop.sifalo.cloud",
+  );
+} else if (explicitBaseURL) {
+  console.log(`[auth] public origin ${explicitBaseURL}`);
+}
 
 // Static broker OAuth endpoints (skip OIDC discovery on every sign-in / callback).
 // Discovery would cost an extra network hop to the broker before the popup can
@@ -222,6 +281,7 @@ export const auth = betterAuth({
   // `http://localhost`, so local dev still works.)
   advanced: {
     useSecureCookies: false,
+    trustedProxyHeaders: true,
     defaultCookieAttributes: { secure: true, sameSite: "lax", path: "/" },
     cookies: {
       session_token: { name: SESSION_TOKEN_COOKIE },

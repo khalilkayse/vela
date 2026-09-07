@@ -67,6 +67,18 @@ export function quoteIdent(name) {
   return `"${name.replaceAll('"', '""')}"`;
 }
 
+/** Host + database name with the password stripped — safe to print. */
+export function describeDatabaseUrl(databaseUrl) {
+  try {
+    const parsed = new URL(databaseUrl);
+    const dbName = decodeURIComponent(parsed.pathname.replace(/^\/+/, "").split("/")[0] || "");
+    const auth = parsed.username ? `${parsed.username}@` : "";
+    return `${parsed.protocol}//${auth}${parsed.host}/${dbName}`;
+  } catch {
+    return "(unparseable DATABASE_URL)";
+  }
+}
+
 /**
  * @param {string} connectionString
  * @returns {Promise<{ ok: true } | { ok: false, err: any }>}
@@ -93,7 +105,9 @@ export async function ensureDatabase(databaseUrl) {
   const dbName = parseDatabaseName(databaseUrl);
   const existing = await probe(databaseUrl);
   if (existing.ok) {
-    console.log(`[migrate] database "${dbName}" already exists`);
+    console.log(
+      `[migrate] database "${dbName}" already exists at ${describeDatabaseUrl(databaseUrl)}`,
+    );
     return;
   }
   // 3D000 = invalid_catalog_name (database does not exist)
@@ -180,6 +194,17 @@ async function applyMigrations(databaseUrl) {
       count += 1;
     }
     console.log(count ? `[migrate] done — ${count} migration(s) applied.` : "[migrate] up to date.");
+    const tables = await client.query(
+      "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY 1",
+    );
+    const names = tables.rows.map((r) => r.tablename);
+    console.log(
+      `[migrate] connected to ${describeDatabaseUrl(databaseUrl)} — tables: ${names.join(", ") || "(none)"}`,
+    );
+    if (names.includes("shops")) {
+      const shops = await client.query("SELECT count(*)::int AS n FROM shops");
+      console.log(`[migrate] shops in this database: ${shops.rows[0]?.n ?? 0} (demo storefront: /maya)`);
+    }
   } finally {
     client.release();
     await pool.end();
