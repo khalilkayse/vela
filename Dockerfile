@@ -4,7 +4,7 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 
 COPY . .
@@ -19,9 +19,10 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 ENV NITRO_PRESET=node-server
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-
+# Reuse the build-stage install. A second `npm ci --omit=dev` fails on this
+# lockfile (ajv 6 vs 8 peer conflict) even when the full install succeeds.
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.output ./.output
 COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/scripts ./scripts
