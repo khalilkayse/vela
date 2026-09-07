@@ -43,7 +43,7 @@ npm run typecheck
 ## Deploy on Dokploy
 
 1. Create a Postgres service in the same Dokploy project and copy its connection string.
-2. Create the application from this repo. Use the **Dockerfile** (preferred) or Nixpacks — both already emit a Node server.
+2. Create the application from this repo. **Railpack**, Dockerfile, or Nixpacks all work — `npm run build` now emits a Node server at `.output/server/index.mjs`.
 3. Paste [`.env.example`](.env.example) into **Environment** and fill in:
 
 | Variable | What to put |

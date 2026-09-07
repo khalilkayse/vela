@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  },
+  "deploy": {
+    "startCommand": "node scripts/start.mjs",
+    "variables": {
+      "HOST": "0.0.0.0",
+      "NITRO_HOST": "0.0.0.0",
+      "NITRO_PRESET": "node-server"
+    }
+  }
+}
