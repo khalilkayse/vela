@@ -6,8 +6,8 @@
 # Usage (on the server):
 #   cd /var/www/vela && bash scripts/deploy.sh
 #
-# Required env:
-#   DATABASE_URL          Postgres connection string
+# Required env (process env or `.env` in the app dir):
+#   DATABASE_URL          Postgres connection string (DB is created if missing)
 #   BETTER_AUTH_SECRET    session signing secret
 #   BETTER_AUTH_URL       public origin, e.g. https://vela.example.com
 #
@@ -19,6 +19,13 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 cd "$APP_DIR"
+
+if [ -f .env ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env
+  set +a
+fi
 
 log() { printf '\n[vela-deploy] %s\n' "$*"; }
 
@@ -43,7 +50,7 @@ else
   npm ci || npm install
 fi
 
-log "Applying pending SQL migrations from migrations/"
+log "Creating the database if needed, then applying migrations/*.sql"
 # migrate.mjs records each filename in _migrations and only runs new files.
 # Drop a new 0004_*.sql in migrations/ and the next deploy applies it.
 if [ "$RUNNER" = "bun" ]; then

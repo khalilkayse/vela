@@ -1,0 +1,14 @@
+# Dokploy Nixpacks (used when the app is not built from the Dockerfile).
+# Emits a Node server and starts via scripts/start.mjs, which creates the
+# database from DATABASE_URL and applies migrations.
+[variables]
+NITRO_PRESET = "node-server"
+NODE_ENV = "production"
+HOST = "0.0.0.0"
+VITE_AUTH_ENABLED = "true"
+
+[phases.build]
+cmds = ["node scripts/with-app-env.mjs vite build"]
+
+[start]
+cmd = "node scripts/start.mjs"

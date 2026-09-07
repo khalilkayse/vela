@@ -24,7 +24,7 @@ Docs: [developer.sifalopay.com/sifalo-pay-checkout](https://developer.sifalopay.
 
 ## Stack
 
-React 19, TanStack Start, Tailwind v4, Better Auth, Postgres (Neon in production, PGLite in local preview).
+React 19, TanStack Start, Tailwind v4, Better Auth, Postgres (Neon or Dokploy Postgres in production, PGLite in local preview).
 
 ## Local development
 
@@ -35,12 +35,35 @@ npm run dev
 
 The app listens on port 8080. Auth and a local database work without extra env files in this workspace.
 
-Production needs `DATABASE_URL` (Postgres). Auth credentials are injected by the host; email/password is also enabled.
-
 ```bash
 npm run build
 npm run typecheck
 ```
+
+## Deploy on Dokploy
+
+1. Create a Postgres service in the same Dokploy project and copy its connection string.
+2. Create the application from this repo. Use the **Dockerfile** (preferred) or Nixpacks — both already emit a Node server.
+3. Paste [`.env.example`](.env.example) into **Environment** and fill in:
+
+| Variable | What to put |
+|---|---|
+| `DATABASE_URL` | `postgresql://USER:PASSWORD@HOST:5432/DBNAME` from the Postgres service. Same-project host is the **database service name**, not `localhost`. |
+| `BETTER_AUTH_URL` | Public origin, e.g. `https://vela.example.com` (no trailing slash). |
+| `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `VITE_AUTH_ENABLED` | `true` (needed at **build** time) |
+| `NITRO_PRESET` | `node-server` |
+| `HOST` / `PORT` | `0.0.0.0` / `3000` (Dokploy usually sets `PORT`) |
+
+4. Deploy. `npm start` (`scripts/start.mjs`) then:
+
+   - creates the database named in `DATABASE_URL` if it does not exist
+   - applies every new file in `migrations/`
+   - starts the server
+
+Re-deploys are safe: already-applied migrations are skipped. You can also run `npm run db:migrate` by itself.
+
+A VPS with systemd can keep using [`deploy/vela.service`](deploy/vela.service) (`EnvironmentFile=.env`, same start script).
 
 ## License
 
