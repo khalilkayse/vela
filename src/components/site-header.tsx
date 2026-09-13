@@ -13,8 +13,8 @@ export function SiteHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-transparent",
-        solid ? "border-border bg-surface/90 backdrop-blur-md" : "bg-transparent",
+        "sticky top-0 z-30 border-b border-border/70 bg-bg/80 backdrop-blur-md",
+        solid && "bg-surface/90",
         className,
       )}
     >
@@ -43,8 +43,8 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <Logo />
-        <p className="text-sm text-muted">
-          Storefronts and checkout for independent makers. Payments by{" "}
+        <p className="max-w-md text-sm leading-relaxed text-muted sm:text-right">
+          One click storefronts for independent makers powered by{" "}
           <a
             href="https://sifalopay.com"
             className="font-medium text-fg underline-offset-4 hover:underline"
@@ -53,7 +53,6 @@ export function SiteFooter() {
           >
             Sifalo Pay
           </a>
-          .
         </p>
       </div>
     </footer>

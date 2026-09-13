@@ -1,9 +1,39 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: #f6f1e8;
+  --color-surface: #fffdf8;
+  --color-fg: #1c1712;
+  --color-muted: #6a6258;
+  --color-subtle: #9a9186;
+  --color-primary: #e24b2a;
+  --color-primary-hover: #c93d20;
+  --color-primary-fg: #fffaf4;
+  --color-accent: #1e6b5a;
+  --color-border: #e6ddd0;
+  --color-ring: #e24b2a;
+  --color-success: #1e6b5a;
+  --color-danger: #b42318;
+  --color-warn: #b45309;
+  --color-ink: #1c1712;
+  --color-paper: #fffaf4;
+
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+
+  --shadow-soft: 0 1px 2px rgb(28 23 18 / 0.05), 0 12px 32px rgb(28 23 18 / 0.07);
+}
+
+/* Owner console keeps the previous Kart-admin look. */
+.dashx-theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
-
   --color-bg: #f6f3f9;
   --color-surface: #ffffff;
   --color-fg: #1a1025;
@@ -20,14 +50,23 @@
   --color-warn: #b45309;
   --color-ink: #1a1025;
   --color-paper: #fbfafc;
-
   --radius-xs: 6px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
   --radius-xl: 28px;
-
   --shadow-soft: 0 1px 2px rgb(26 16 37 / 0.04), 0 8px 24px rgb(76 29 149 / 0.06);
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  min-height: 100vh;
+}
+
+.dashx-theme .logo-word {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  font-size: 17px;
 }
 
 @layer base {
@@ -48,6 +87,7 @@
   h1,
   h2,
   h3 {
+    font-family: var(--font-display);
     text-wrap: balance;
   }
 
@@ -61,7 +101,7 @@
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-primary) 18%, white);
+    background: color-mix(in oklab, var(--color-primary) 22%, white);
     color: var(--color-fg);
   }
 }
@@ -87,6 +127,16 @@
   }
 }
 
+@keyframes floaty {
+  0%,
+  100% {
+    transform: rotate(2.6deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2.6deg) translateY(-8px);
+  }
+}
+
 .rise {
   animation: rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -101,4 +151,17 @@
 }
 .rise-5 {
   animation-delay: 240ms;
+}
+
+.hero-float {
+  animation: floaty 5.5s ease-in-out infinite;
+}
+
+.hero-dots {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in oklab, var(--color-fg) 10%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 22px 22px;
 }

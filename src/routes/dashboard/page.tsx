@@ -69,7 +69,7 @@ function PageEditor() {
   return (
     <DashboardPage
       title="Page"
-      description="Stacked links on your public profile — the Linktree layer of your shop."
+      description="Buttons that sit on your public profile — a calendar, a newsletter, selected work."
     >
       <Card className="mb-6 p-5">
         <p className="text-sm text-muted">

@@ -41,7 +41,7 @@ import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
 import { buildSocialProviders } from "./social.server";
 import { SOCIAL_CATALOG } from "./social-catalog";
-import { APP_NAME } from "../constants";
+import { APP_NAME, BRAND_HEX } from "../constants";
 import { pgliteDialect } from "./pglite-dialect";
 import {
   GROK_ISSUER_DEFAULT,
@@ -345,7 +345,7 @@ export const auth = betterAuth({
               html: mailLayout(
                 "Reset your password",
                 `<p style="line-height:1.6">Use this link to choose a new password. It expires soon.</p>
-                 <p><a href="${escapeHtml(url)}" style="color:#4c1d95">Reset password</a></p>`,
+                 <p><a href="${escapeHtml(url)}" style="color:${BRAND_HEX.primary}">Reset password</a></p>`,
               ),
             });
           },
@@ -365,7 +365,7 @@ export const auth = betterAuth({
               html: mailLayout(
                 "Confirm your email",
                 `<p style="line-height:1.6">Welcome to ${APP_NAME}. Confirm this address so we can send shop notices and receipts.</p>
-                 <p><a href="${escapeHtml(url)}" style="color:#4c1d95">Confirm email</a></p>`,
+                 <p><a href="${escapeHtml(url)}" style="color:${BRAND_HEX.primary}">Confirm email</a></p>`,
               ),
             });
           },

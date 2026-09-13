@@ -1,5 +1,16 @@
 export const APP_NAME = "Kart";
-export const APP_TAGLINE = "Your store. Your page. Your payouts.";
+export const APP_TAGLINE = "One click storefronts for independent makers.";
+export const APP_PITCH = "One click storefronts for independent makers powered by Sifalo Pay";
+
+/** Inline hex for emails and favicons — keep in sync with `src/styles.css`. */
+export const BRAND_HEX = {
+  primary: "#e24b2a",
+  bg: "#f6f1e8",
+  fg: "#1c1712",
+  muted: "#6a6258",
+  border: "#e6ddd0",
+  surface: "#fffdf8",
+} as const;
 
 export const RESERVED_USERNAMES = new Set([
   "login",
@@ -46,9 +57,21 @@ export const PRODUCT_KINDS = [
 export type ProductKind = (typeof PRODUCT_KINDS)[number]["id"];
 
 export const LAYOUTS = [
-  { id: "hybrid", label: "Studio", hint: "Profile, links, then products — like Stan" },
-  { id: "shop", label: "Shop", hint: "A catalog-first storefront — like Shopify" },
-  { id: "links", label: "Page", hint: "Stacked buttons — like Linktree" },
+  {
+    id: "hybrid",
+    label: "Studio",
+    hint: "Name and bio first, then a few links, then the things you sell.",
+  },
+  {
+    id: "shop",
+    label: "Shop",
+    hint: "A catalog of covers, prices, and checkout on every product.",
+  },
+  {
+    id: "links",
+    label: "Page",
+    hint: "A single column of buttons — one destination per tap.",
+  },
 ] as const;
 
 export type ShopLayout = (typeof LAYOUTS)[number]["id"];

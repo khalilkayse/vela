@@ -219,7 +219,7 @@ function NavLink({
 function ShopBadge({ shop }: { shop: Shop }) {
   return (
     <div className="mx-3 mb-1 flex items-center gap-3 rounded-lg bg-bg px-3 py-3">
-      <span className="grid size-9 place-items-center rounded-md bg-primary text-xs font-semibold text-primary-fg">
+      <span className="grid size-9 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-fg">
         {shop.avatarInitials}
       </span>
       <div className="min-w-0">
@@ -276,7 +276,7 @@ export function DashboardPage({
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl tracking-tight text-fg">{title}</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-fg">{title}</h1>
           {description ? <p className="mt-1.5 max-w-xl text-sm text-muted">{description}</p> : null}
         </div>
         {action}

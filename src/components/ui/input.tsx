@@ -11,7 +11,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
     <input
       className={cn(
         "h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm text-fg",
-        "placeholder:text-subtle shadow-[inset_0_1px_0_rgb(26_16_37/0.02)]",
+        "placeholder:text-subtle shadow-[inset_0_1px_0_rgb(0_0_0/0.03)]",
         "transition-[border-color,box-shadow] duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:border-accent",
         "disabled:opacity-50",

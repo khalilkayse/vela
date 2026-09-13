@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
-import { RESERVED_USERNAMES, type ShopLayout } from "@/lib/constants";
+import { RESERVED_USERNAMES, BRAND_HEX, type ShopLayout } from "@/lib/constants";
 import { initials, usernamePattern } from "@/lib/utils";
 import { mapBlock, mapProduct, mapShop, type ShopRow, type ProductRow, type BlockRow } from "./map";
 
@@ -276,8 +276,8 @@ async function sendShopWelcome(userId: string, username: string, displayName: st
       html: mailLayout(
         "Your shop is ready",
         `<p style="line-height:1.6">${escapeHtml(displayName)} is on Kart. Share this link:</p>
-         <p><a href="${escapeHtml(url)}" style="color:#4c1d95">${escapeHtml(url)}</a></p>
-         <p style="line-height:1.6;color:#6b5d7a">Connect Sifalo Pay in settings when you want live checkout.</p>`,
+         <p><a href="${escapeHtml(url)}" style="color:${BRAND_HEX.primary}">${escapeHtml(url)}</a></p>
+         <p style="line-height:1.6;color:${BRAND_HEX.muted}">Connect Sifalo Pay in settings when you want live checkout.</p>`,
       ),
     });
   } catch (err) {

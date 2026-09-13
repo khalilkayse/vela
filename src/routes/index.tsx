@@ -1,32 +1,42 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, CreditCard, LayoutPanelTop, Link2, ShieldCheck, Store } from "lucide-react";
+import { ArrowRight, CreditCard, ShieldCheck } from "lucide-react";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { ProductCover } from "@/components/product-cover";
-import { APP_NAME } from "@/lib/constants";
+import { LayoutSketch } from "@/components/layout-sketch";
+import { APP_NAME, LAYOUTS, type ShopLayout } from "@/lib/constants";
 
 export const Route = createFileRoute("/")({ component: Home });
+
+const LAYOUT_COPY: Record<ShopLayout, string> = {
+  hybrid:
+    "Your name and bio sit at the top. A few buttons for the places you always send people. Products and services listed underneath.",
+  shop: "A catalog first. Every product gets a cover, a price, and a checkout button. Your profile stays short so the work leads.",
+  links:
+    "A single column of buttons. Each one is a destination — a product, a booking link, a file, or anywhere else you want people to go.",
+};
 
 function Home() {
   return (
     <div className="min-h-screen bg-bg">
       <SiteHeader />
       <main>
-        <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-16 lg:pb-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.08fr_0.92fr]">
+        <section className="hero-dots relative overflow-hidden">
+          <div className="pointer-events-none absolute -left-16 top-20 size-56 rotate-12 rounded-3xl bg-primary/10" />
+          <div className="pointer-events-none absolute -right-10 bottom-10 size-40 -rotate-6 rounded-full bg-accent/10" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-10 sm:px-6 sm:pt-16 lg:grid-cols-[1.08fr_0.92fr] lg:pb-24">
             <div className="rise">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                Storefronts for Sifalo Pay
+              <p className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                {APP_NAME}
               </p>
-              <h1 className="mt-4 font-display text-5xl leading-[1.04] tracking-tight text-fg sm:text-6xl lg:text-7xl">
-                A shop that looks like you.
-                <span className="text-primary"> Checkout that pays you.</span>
+              <h1 className="mt-5 font-display text-5xl font-bold leading-[1.02] tracking-tight text-fg sm:text-6xl lg:text-7xl">
+                Open a shop
+                <span className="text-primary"> in one click.</span>
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-                {APP_NAME} is a page for digital products, sessions, and links. Claim a
-                username, publish a catalog, and connect Sifalo Pay. Funds go to the
-                merchant — never through the platform.
+                Claim a username. Publish files, sessions, and links. Buyers check out on
+                Sifalo Pay, and the money goes to you — never through {APP_NAME}.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg">
@@ -40,7 +50,7 @@ function Home() {
                 </Button>
               </div>
               <p className="mt-4 text-sm text-subtle">
-                Unique public URL. No platform fee on payouts. Demo checkout until you connect keys.
+                Unique public URL. Purchase-gated files. Demo checkout until you connect keys.
               </p>
             </div>
             <HeroPreview />
@@ -51,36 +61,33 @@ function Home() {
           <div className="mx-auto grid max-w-6xl divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <Stat k="01" label="Your URL" value="/you" />
             <Stat k="02" label="Payouts" value="Sifalo Pay" />
-            <Stat k="03" label="Files" value="Purchase-gated" />
+            <Stat k="03" label="Files" value="After payment" />
           </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="max-w-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Layouts</p>
-            <h2 className="mt-3 font-display text-4xl tracking-tight text-fg">
-              Shop, studio, or a stack of links.
+            <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-fg">
+              Three ways to present the work.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              One username. Three ways to present the work. Switch anytime without losing products.
+              Pick a layout when you open the shop. Switch later without losing products.
             </p>
           </div>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3">
-            <Feature
-              icon={Store}
-              title="Shop"
-              body="A catalog-first storefront. Covers, prices, and a checkout that belongs to each merchant."
-            />
-            <Feature
-              icon={LayoutPanelTop}
-              title="Studio"
-              body="Profile, links, then products — organized like Stan, clearer like Shopify."
-            />
-            <Feature
-              icon={Link2}
-              title="Page"
-              body="Stacked buttons for the people who just need a calm home on the internet."
-            />
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {LAYOUTS.map((layout) => (
+              <article
+                key={layout.id}
+                className="flex flex-col rounded-xl border border-border bg-surface p-5 shadow-soft"
+              >
+                <LayoutSketch layout={layout.id} className="h-40" />
+                <h3 className="mt-5 font-display text-xl font-bold tracking-tight text-fg">
+                  {layout.label}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{LAYOUT_COPY[layout.id]}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -88,7 +95,7 @@ function Home() {
           <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">How it works</p>
-              <h2 className="mt-3 font-display text-4xl tracking-tight text-fg">
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-fg">
                 Username, catalog, paid order.
               </h2>
             </div>
@@ -101,12 +108,12 @@ function Home() {
               <Step
                 n="02"
                 title="Connect Sifalo Pay"
-                body="Paste your API username and password, or ask the operator to collect on the platform account and grant your shop its own keys."
+                body="Paste your API username and password in settings. Checkout is hosted by Sifalo Pay, so funds land in your merchant account."
               />
               <Step
                 n="03"
                 title="Deliver after payment"
-                body="Buyers pay on Sifalo Pay. Kart verifies the sid, then unlocks the note, link, and any private files."
+                body="Buyers pay on Sifalo Pay. Kart verifies the order, then unlocks the note, link, and any private files."
               />
             </ol>
           </div>
@@ -116,7 +123,7 @@ function Home() {
           <div className="grid items-start gap-10 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Payouts</p>
-              <h2 className="mt-3 font-display text-4xl tracking-tight text-fg">
+              <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-fg">
                 Your Sifalo Pay. Your money.
               </h2>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
@@ -129,9 +136,9 @@ function Home() {
                 Private file downloads only after a paid order. Signed links, short-lived.
               </div>
             </div>
-            <div className="overflow-hidden rounded-xl border border-border bg-primary px-6 py-10 text-primary-fg sm:px-10 sm:py-12">
-              <h3 className="font-display text-3xl tracking-tight">Ready when you are.</h3>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-primary-fg/80">
+            <div className="overflow-hidden rounded-xl bg-primary px-6 py-10 text-primary-fg sm:px-10 sm:py-12">
+              <h3 className="font-display text-3xl font-bold tracking-tight">Ready when you are.</h3>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-primary-fg/85">
                 Create an account, pick a username, and publish. Connect Sifalo Pay when you
                 want live checkout — demo flow works until then.
               </p>
@@ -166,29 +173,9 @@ function Home() {
 function Stat({ k, label, value }: { k: string; label: string; value: string }) {
   return (
     <div className="px-6 py-8 sm:px-8">
-      <p className="font-display text-sm text-primary">{k}</p>
+      <p className="font-display text-sm font-bold text-primary">{k}</p>
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl tracking-tight text-fg">{value}</p>
-    </div>
-  );
-}
-
-function Feature({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: typeof Store;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="bg-surface px-6 py-10 sm:px-8">
-      <span className="grid size-10 place-items-center rounded-md bg-bg text-primary">
-        <Icon className="size-4" />
-      </span>
-      <h3 className="mt-5 text-base font-semibold text-fg">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
+      <p className="mt-1 font-display text-2xl font-bold tracking-tight text-fg">{value}</p>
     </div>
   );
 }
@@ -196,8 +183,8 @@ function Feature({
 function Step({ n, title, body }: { n: string; title: string; body: string }) {
   return (
     <li className="rounded-xl border border-border bg-bg p-6 shadow-soft">
-      <span className="font-display text-sm text-primary">{n}</span>
-      <h3 className="mt-3 text-lg font-semibold tracking-tight text-fg">{title}</h3>
+      <span className="font-display text-sm font-bold text-primary">{n}</span>
+      <h3 className="mt-3 text-lg font-bold tracking-tight text-fg">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
     </li>
   );
@@ -206,9 +193,9 @@ function Step({ n, title, body }: { n: string; title: string; body: string }) {
 function HeroPreview() {
   return (
     <div className="rise rise-3 relative mx-auto w-full max-w-md">
-      <div className="rounded-xl border border-border bg-surface p-5 shadow-soft">
+      <div className="hero-float rounded-xl border border-border bg-surface p-5 shadow-soft">
         <div className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-lg bg-primary font-display text-primary-fg">
+          <span className="grid size-12 place-items-center rounded-lg bg-primary font-display text-lg font-bold text-primary-fg">
             MA
           </span>
           <div>
@@ -217,10 +204,10 @@ function HeroPreview() {
           </div>
         </div>
         <div className="mt-5 space-y-2">
-          <div className="h-11 rounded-lg border border-border bg-bg text-center text-sm font-medium leading-[2.75rem] text-fg">
+          <div className="h-11 rounded-full border border-border bg-bg text-center text-sm font-medium leading-[2.75rem] text-fg">
             Read the studio notes
           </div>
-          <div className="h-11 rounded-lg border border-border bg-bg text-center text-sm font-medium leading-[2.75rem] text-fg">
+          <div className="h-11 rounded-full border border-border bg-bg text-center text-sm font-medium leading-[2.75rem] text-fg">
             Book a discovery call
           </div>
         </div>

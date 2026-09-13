@@ -28,6 +28,10 @@ function navActive(pathname: string, to: string, exact: boolean) {
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
+function DashxFrame({ children }: { children: ReactNode }) {
+  return <div className="dashx-theme min-h-screen bg-bg text-fg">{children}</div>;
+}
+
 export function DashxShell() {
   const { user, isPending } = useCurrentUserState();
   const [allowed, setAllowed] = useState<boolean | null>(null);
@@ -58,22 +62,26 @@ export function DashxShell() {
 
   if (isPending || (user && allowed === null)) {
     return (
-      <div className="min-h-screen bg-bg p-8">
-        <Skeleton className="h-10 w-48" />
-      </div>
+      <DashxFrame>
+        <div className="p-8">
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </DashxFrame>
     );
   }
   if (!user) return <DashxSignIn />;
   if (!allowed) {
     return (
-      <main className="grid min-h-screen place-items-center bg-bg px-4">
-        <p className="text-sm text-muted">You do not have access.</p>
-      </main>
+      <DashxFrame>
+        <main className="grid min-h-screen place-items-center px-4">
+          <p className="text-sm text-muted">You do not have access.</p>
+        </main>
+      </DashxFrame>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <DashxFrame>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-16 items-center px-5">
           <Logo />
@@ -137,7 +145,7 @@ export function DashxShell() {
           </div>
         </div>
       ) : null}
-    </div>
+    </DashxFrame>
   );
 }
 
@@ -162,28 +170,30 @@ function DashxSignIn() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-bg px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
-        <Logo />
-        <h1 className="font-display text-3xl tracking-tight text-fg">Sign in</h1>
-        <Field label="Email">
-          <Input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label="Password">
-          <Input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </Field>
-        {error ? <p className="text-sm text-danger">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Please wait…" : "Continue"}
-        </Button>
-      </form>
-    </main>
+    <DashxFrame>
+      <main className="grid min-h-screen place-items-center px-4">
+        <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
+          <Logo />
+          <h1 className="font-display text-3xl tracking-tight text-fg">Sign in</h1>
+          <Field label="Email">
+            <Input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Field label="Password">
+            <Input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Please wait…" : "Continue"}
+          </Button>
+        </form>
+      </main>
+    </DashxFrame>
   );
 }
 

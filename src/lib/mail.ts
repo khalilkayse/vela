@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { BRAND_HEX } from "@/lib/constants";
 import { readSettings } from "@/lib/platform-settings";
 
 export type SmtpConfig = {
@@ -75,10 +76,10 @@ function stripHtml(html: string): string {
 
 export function mailLayout(title: string, bodyHtml: string): string {
   return `<!doctype html>
-<html><body style="margin:0;background:#f6f3f9;font-family:Georgia,serif;color:#1a1025;">
-  <div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e6def0;border-radius:18px;padding:32px;">
-    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#4c1d95;">Kart</p>
-    <h1 style="margin:0 0 16px;font-size:28px;font-weight:500;">${escapeHtml(title)}</h1>
+<html><body style="margin:0;background:${BRAND_HEX.bg};font-family:Georgia,serif;color:${BRAND_HEX.fg};">
+  <div style="max-width:560px;margin:32px auto;background:${BRAND_HEX.surface};border:1px solid ${BRAND_HEX.border};border-radius:22px;padding:32px;">
+    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:${BRAND_HEX.primary};">Kart</p>
+    <h1 style="margin:0 0 16px;font-size:28px;font-weight:700;">${escapeHtml(title)}</h1>
     ${bodyHtml}
   </div>
 </body></html>`;

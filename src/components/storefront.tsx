@@ -51,10 +51,10 @@ export function Storefront({
     <div className="min-h-screen bg-bg">
       <div className={cn("mx-auto px-4 pb-20 pt-10", isLinks ? "max-w-md" : "max-w-3xl sm:px-6")}>
         <header className={cn("flex flex-col", isLinks || !isShop ? "items-center text-center" : "items-start")}>
-          <span className="grid size-20 place-items-center rounded-xl bg-primary font-display text-2xl text-primary-fg">
+          <span className="grid size-20 place-items-center rounded-2xl bg-primary font-display text-2xl font-bold text-primary-fg">
             {shop.avatarInitials}
           </span>
-          <h1 className="mt-5 font-display text-4xl tracking-tight text-fg">{shop.displayName}</h1>
+          <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-fg">{shop.displayName}</h1>
           {shop.tagline ? (
             <p className="mt-2 max-w-md text-base leading-relaxed text-muted">{shop.tagline}</p>
           ) : null}

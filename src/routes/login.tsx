@@ -6,6 +6,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { errMsg } from "@/lib/errors";
+import { APP_PITCH } from "@/lib/constants";
 import { getPublicAuthMethods } from "@/lib/server/auth-public";
 
 type Search = { next?: string };
@@ -90,8 +91,8 @@ function Login() {
         <Link to="/" className="inline-flex">
           <Logo />
         </Link>
-        <h1 className="mt-8 font-display text-3xl tracking-tight text-fg">
-          {mode === "signup" ? "Create your studio" : mode === "reset" ? "Reset password" : "Welcome back"}
+        <h1 className="mt-8 font-display text-3xl font-bold tracking-tight text-fg">
+          {mode === "signup" ? "Create your shop" : mode === "reset" ? "Reset password" : "Welcome back"}
         </h1>
         <p className="mt-2 text-sm text-muted">
           {mode === "signup"
@@ -206,6 +207,7 @@ function Login() {
             {mode === "reset" ? "Back to sign in" : "Forgot password?"}
           </button>
         </div>
+        <p className="mt-10 text-xs leading-relaxed text-subtle">{APP_PITCH}</p>
       </div>
     </main>
   );

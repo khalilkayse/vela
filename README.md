@@ -1,6 +1,6 @@
 # Kart
 
-Storefronts for independent makers. Sell digital products, services, and free links from a page that feels like yours. Checkout runs on [Sifalo Pay](https://sifalopay.com) — funds go to the merchant, never through Kart.
+One click storefronts for independent makers powered by [Sifalo Pay](https://sifalopay.com).
 
 Live: [shop.sifalo.cloud](https://shop.sifalo.cloud)
 
@@ -8,7 +8,7 @@ If you are a coding agent contributing to this repo, start with [CONTRIBUTING.md
 
 ## What it does
 
-- **Shop, Studio, or Page layouts** — catalog-first like Shopify, profile + products like Stan, or stacked buttons like Linktree.
+- **Shop, Studio, or Page layouts** — a catalog of covers and prices, a profile with links then products, or a single column of buttons.
 - **Products, services, and free links** — each with a cover, price, and delivery note unlocked after payment.
 - **Private file delivery** — merchants upload files to a platform S3/R2 bucket. Only a paid order can mint a short signed download.
 - **Sifalo Pay checkout** — hosted checkout with Basic Auth. Endpoints and optional platform credentials are set in `/dashx`. Individual shops can be granted their own keys even while the platform collects for everyone else.

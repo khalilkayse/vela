@@ -7,6 +7,7 @@ import { Badge, Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/skeleton";
 import { LAYOUTS, type ShopLayout } from "@/lib/constants";
+import { LayoutSketch } from "@/components/layout-sketch";
 import { errMsg } from "@/lib/errors";
 import { disconnectSifalo, getMyPayPolicy, saveSifaloCredentials, updateShop } from "@/lib/server/shops";
 import { formatCountry } from "@/lib/geo";
@@ -135,6 +136,7 @@ function SettingsPage() {
                   layout === option.id ? "border-primary bg-primary/5" : "border-border hover:bg-bg",
                 )}
               >
+                <LayoutSketch layout={option.id} className="mb-3 h-24 p-2" />
                 <span className="block text-sm font-medium text-fg">{option.label}</span>
                 <span className="text-xs text-muted">{option.hint}</span>
               </button>
