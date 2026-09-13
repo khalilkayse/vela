@@ -9,12 +9,14 @@ import {
   ExternalLink,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { Logo, Mark } from "@/components/logo";
 import { UserButton } from "@/lib/auth/gates";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyShop } from "@/lib/server/shops";
+import { getIsPlatformAdmin } from "@/lib/server/admin";
 import type { Shop } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,6 +51,7 @@ function navActive(pathname: string, to: string, exact: boolean) {
 export function DashboardShell() {
   const { user, isPending } = useCurrentUserState();
   const [shop, setShop] = useState<Shop | null | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -66,6 +69,13 @@ export function DashboardShell() {
       })
       .catch(() => {
         if (!cancelled) setShop(null);
+      });
+    getIsPlatformAdmin()
+      .then((ok) => {
+        if (!cancelled) setIsAdmin(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdmin(false);
       });
     return () => {
       cancelled = true;
@@ -96,6 +106,9 @@ export function DashboardShell() {
             {NAV.map((item) => (
               <NavLink key={item.to} {...item} pathname={pathname} />
             ))}
+            {isAdmin ? (
+              <NavLink to="/admin" label="Owner console" icon={Shield} exact={false} pathname={pathname} />
+            ) : null}
           </nav>
           <div className="border-t border-border p-4">
             <UserButton />
@@ -179,6 +192,9 @@ export function DashboardShell() {
                 {NAV.map((item) => (
                   <NavLink key={item.to} {...item} pathname={pathname} />
                 ))}
+                {isAdmin ? (
+                  <NavLink to="/admin" label="Owner console" icon={Shield} exact={false} pathname={pathname} />
+                ) : null}
               </nav>
             </div>
           </div>

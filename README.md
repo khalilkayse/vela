@@ -55,11 +55,7 @@ npm run typecheck
 | `NITRO_PRESET` | `node-server` |
 | `HOST` / `PORT` | `0.0.0.0` / `3000` (Dokploy usually sets `PORT`) |
 
-4. Deploy. `npm start` (`scripts/start.mjs`) then:
-
-   - creates the database named in `DATABASE_URL` if it does not exist
-   - applies every new file in `migrations/`
-   - starts the server
+4. Deploy. `npm start` creates the database if needed, applies `migrations/`, then starts the server. Sign up at `/login`. The first account is the platform owner and can open `/admin`. Set `PLATFORM_ADMIN_EMAILS` if you want to lock the console to specific emails.
 
 Re-deploys are safe: already-applied migrations are skipped. You can also run `npm run db:migrate` by itself.
 
