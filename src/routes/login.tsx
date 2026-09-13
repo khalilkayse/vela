@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { GROK_PROVIDERS, authClient, authEnabled, grokOAuthEnabled, signIn } from "@/lib/auth/client";
+import { GROK_PROVIDERS, authClient, authEnabled, grokOAuthEnabled, signIn, signInSocial } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { errMsg } from "@/lib/errors";
+import { getPublicAuthMethods } from "@/lib/server/auth-public";
 
 type Search = { next?: string };
 
@@ -28,6 +29,13 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [social, setSocial] = useState<{ id: string; label: string }[]>([]);
+
+  useEffect(() => {
+    getPublicAuthMethods()
+      .then((result) => setSocial(result.social))
+      .catch(() => setSocial([]));
+  }, []);
 
   if (!isPending && user) {
     void navigate({ to: dest });
@@ -73,6 +81,9 @@ function Login() {
     }
   }
 
+  const grokButtons = authEnabled && grokOAuthEnabled;
+  const hasSocial = social.length > 0 || grokButtons;
+
   return (
     <main className="grid min-h-screen place-items-center bg-bg px-4 py-12">
       <div className="w-full max-w-sm">
@@ -90,29 +101,44 @@ function Login() {
               : "Sign in to manage your shop, products, and payouts."}
         </p>
 
-        {authEnabled && grokOAuthEnabled ? (
+        {mode !== "reset" && hasSocial ? (
           <div className="mt-8 space-y-3">
-            {GROK_PROVIDERS.map((provider) => (
+            {social.map((provider) => (
               <Button
-                key={provider.providerId}
+                key={provider.id}
                 type="button"
                 variant="secondary"
                 className="w-full"
-                onClick={() => signIn(provider.providerId, { callbackURL: dest })}
+                onClick={() => signInSocial(provider.id, { callbackURL: dest })}
               >
                 Continue with {provider.label}
               </Button>
             ))}
+            {grokButtons
+              ? GROK_PROVIDERS.map((provider) => (
+                  <Button
+                    key={provider.providerId}
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                    onClick={() => signIn(provider.providerId, { callbackURL: dest })}
+                  >
+                    Continue with {provider.label}
+                  </Button>
+                ))
+              : null}
           </div>
         ) : null}
 
-        {authEnabled && grokOAuthEnabled ? (
-        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-subtle">
-          <span className="h-px flex-1 bg-border" />
-          Email
-          <span className="h-px flex-1 bg-border" />
-        </div>
-        ) : <div className="mt-8" />}
+        {mode !== "reset" && hasSocial ? (
+          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.14em] text-subtle">
+            <span className="h-px flex-1 bg-border" />
+            Email
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        ) : (
+          <div className="mt-8" />
+        )}
 
         <form onSubmit={onEmail} className="space-y-4">
           {mode === "signup" ? (
@@ -130,16 +156,16 @@ function Login() {
             />
           </Field>
           {mode !== "reset" ? (
-          <Field label="Password">
-            <Input
-              type="password"
-              required
-              minLength={8}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
+            <Field label="Password">
+              <Input
+                type="password"
+                required
+                minLength={8}
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
           ) : null}
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           {notice ? <p className="text-sm text-success">{notice}</p> : null}

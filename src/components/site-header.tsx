@@ -20,7 +20,7 @@ export function SiteHeader({
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-8">
-          <Link to="/" aria-label="Vela home">
+          <Link to="/" aria-label="Kart home">
             <Logo />
           </Link>
           <nav className="hidden items-center gap-1 text-sm font-medium text-muted md:flex">

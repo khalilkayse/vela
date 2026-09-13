@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/card";
 import type { PageBlock, Product, Shop } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { countryName } from "@/lib/geo";
 
 function XMark({ className }: { className?: string }) {
   return (
@@ -56,6 +57,11 @@ export function Storefront({
           <h1 className="mt-5 font-display text-4xl tracking-tight text-fg">{shop.displayName}</h1>
           {shop.tagline ? (
             <p className="mt-2 max-w-md text-base leading-relaxed text-muted">{shop.tagline}</p>
+          ) : null}
+          {shop.country ? (
+            <p className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-subtle">
+              {countryName(shop.country) || shop.country}
+            </p>
           ) : null}
           {shop.bio && !isShop ? (
             <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted">{shop.bio}</p>
@@ -140,7 +146,7 @@ export function Storefront({
         ) : null}
 
         <p className="mt-16 flex items-center justify-center gap-2 text-xs text-subtle">
-          <Link to="/" className="text-subtle hover:text-muted" aria-label="Vela">
+          <Link to="/" className="text-subtle hover:text-muted" aria-label="Kart">
             <Logo markClassName="size-5" />
           </Link>
         </p>

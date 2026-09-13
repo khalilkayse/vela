@@ -17,6 +17,8 @@ export type Shop = {
   tiktokUrl: string | null;
   sifaloConnected: boolean;
   hasSifaloCredentials: boolean;
+  allowOwnSifalo: boolean;
+  country: string | null;
   published: boolean;
   createdAt: string;
 };

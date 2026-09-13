@@ -1,4 +1,4 @@
-export const APP_NAME = "Vela";
+export const APP_NAME = "Kart";
 export const APP_TAGLINE = "Your store. Your page. Your payouts.";
 
 export const RESERVED_USERNAMES = new Set([
@@ -33,6 +33,7 @@ export const RESERVED_USERNAMES = new Set([
   "new",
   "edit",
   "vela",
+  "kart",
   "sifalo",
 ]);
 

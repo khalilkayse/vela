@@ -33,7 +33,7 @@ export async function getSmtpConfig(): Promise<SmtpConfig | null> {
     user: (raw[KEYS.user] ?? "").trim(),
     pass: raw[KEYS.pass] ?? "",
     fromEmail,
-    fromName: (raw[KEYS.fromName] ?? "Vela").trim() || "Vela",
+    fromName: (raw[KEYS.fromName] ?? "Kart").trim() || "Kart",
     secure: raw[KEYS.secure] === "1" || port === 465,
   };
 }
@@ -77,7 +77,7 @@ export function mailLayout(title: string, bodyHtml: string): string {
   return `<!doctype html>
 <html><body style="margin:0;background:#f6f3f9;font-family:Georgia,serif;color:#1a1025;">
   <div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e6def0;border-radius:18px;padding:32px;">
-    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#4c1d95;">Vela</p>
+    <p style="margin:0 0 8px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#4c1d95;">Kart</p>
     <h1 style="margin:0 0 16px;font-size:28px;font-weight:500;">${escapeHtml(title)}</h1>
     ${bodyHtml}
   </div>

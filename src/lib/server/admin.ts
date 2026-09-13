@@ -146,6 +146,50 @@ export const setShopPublished = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const setShopAllowOwnSifalo = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { shopId: number; allow: boolean }) => ({
+    shopId: Number(input.shopId),
+    allow: Boolean(input.allow),
+  }))
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    await sql.query("update shops set allow_own_sifalo = $1, updated_at = now() where id = $2", [
+      data.allow,
+      data.shopId,
+    ]);
+    return { ok: true as const };
+  });
+
+export const setShopCountry = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { shopId: number; country: string }) => ({
+    shopId: Number(input.shopId),
+    country: input.country.trim().toUpperCase().slice(0, 2),
+  }))
+  .handler(async ({ data }) => {
+    const { normalizeCountry } = await import("@/lib/geo");
+    const country = normalizeCountry(data.country);
+    const sql = await getSql();
+    await sql.query("update shops set country = $1, updated_at = now() where id = $2", [
+      country,
+      data.shopId,
+    ]);
+    return { ok: true as const, country };
+  });
+
+export const clearShopSifalo = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((shopId: number) => Number(shopId))
+  .handler(async ({ data: shopId }) => {
+    const sql = await getSql();
+    await sql.query(
+      `update shops set sifalo_api_key = null, sifalo_api_password = null, sifalo_connected = false, updated_at = now() where id = $1`,
+      [shopId],
+    );
+    return { ok: true as const };
+  });
+
 export type AdminUser = {
   id: string;
   name: string;
@@ -154,6 +198,10 @@ export type AdminUser = {
   username: string | null;
   shopName: string | null;
   isAdmin: boolean;
+  signupCountry: string | null;
+  lastLoginAt: string | null;
+  lastLoginCountry: string | null;
+  disabled: boolean;
 };
 
 export const listPlatformUsers = createServerFn({ method: "GET" })
@@ -168,6 +216,10 @@ export const listPlatformUsers = createServerFn({ method: "GET" })
       username: string | null;
       shop_name: string | null;
       is_admin: boolean;
+      signup_country: string | null;
+      last_login_at: unknown;
+      last_login_country: string | null;
+      disabled: boolean | null;
     }>(`
       select
         u.id,
@@ -176,11 +228,16 @@ export const listPlatformUsers = createServerFn({ method: "GET" })
         u."createdAt",
         s.username,
         s.display_name as shop_name,
-        exists(select 1 from platform_admins a where a.user_id = u.id) as is_admin
+        exists(select 1 from platform_admins a where a.user_id = u.id) as is_admin,
+        p.signup_country,
+        p.last_login_at,
+        p.last_login_country,
+        coalesce(p.disabled, false) as disabled
       from "user" u
       left join shops s on s.user_id = u.id
-      order by u."createdAt" desc
-      limit 200
+      left join user_profiles p on p.user_id = u.id
+      order by coalesce(p.last_login_at, u."createdAt") desc
+      limit 400
     `);
     return rows.map((row) => ({
       id: row.id,
@@ -190,7 +247,70 @@ export const listPlatformUsers = createServerFn({ method: "GET" })
       username: row.username,
       shopName: row.shop_name,
       isAdmin: Boolean(row.is_admin),
+      signupCountry: row.signup_country,
+      lastLoginAt: row.last_login_at ? toIso(row.last_login_at) : null,
+      lastLoginCountry: row.last_login_country,
+      disabled: Boolean(row.disabled),
     }));
+  });
+
+export const setUserDisabled = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { userId: string; disabled: boolean; reason?: string }) => ({
+    userId: String(input.userId),
+    disabled: Boolean(input.disabled),
+    reason: (input.reason ?? "").trim().slice(0, 200),
+  }))
+  .handler(async ({ context, data }) => {
+    if (data.userId === context.userId) throw new Error("You cannot disable your own account.");
+    const sql = await getSql();
+    const admins = await sql.query<{ user_id: string }>(
+      "select user_id from platform_admins where user_id = $1 limit 1",
+      [data.userId],
+    );
+    if (admins[0] && data.disabled) throw new Error("Disable another owner first, or leave the console account active.");
+    await sql.query(
+      `insert into user_profiles (user_id, disabled, disabled_reason, updated_at)
+       values ($1, $2, $3, now())
+       on conflict (user_id) do update set
+         disabled = excluded.disabled,
+         disabled_reason = excluded.disabled_reason,
+         updated_at = now()`,
+      [data.userId, data.disabled, data.disabled ? data.reason || "Disabled from /dashx" : null],
+    );
+    if (data.disabled) {
+      await sql.query(`delete from session where "userId" = $1`, [data.userId]);
+    }
+    return { ok: true as const };
+  });
+
+export const getAccessSettings = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { readSettings } = await import("@/lib/platform-settings");
+    const { parseCountryList, normalizeCountry } = await import("@/lib/geo");
+    const raw = await readSettings(["blocked_countries", "default_signup_country"]);
+    return {
+      blockedCountries: parseCountryList(raw.blocked_countries),
+      defaultSignupCountry: normalizeCountry(raw.default_signup_country) ?? "",
+    };
+  });
+
+export const saveAccessSettings = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { blockedCountries: string[]; defaultSignupCountry: string }) => ({
+    blockedCountries: input.blockedCountries,
+    defaultSignupCountry: input.defaultSignupCountry,
+  }))
+  .handler(async ({ data }) => {
+    const { writeSettings } = await import("@/lib/platform-settings");
+    const { parseCountryList, normalizeCountry } = await import("@/lib/geo");
+    const blocked = parseCountryList(data.blockedCountries.join(","));
+    await writeSettings({
+      blocked_countries: blocked.join(","),
+      default_signup_country: normalizeCountry(data.defaultSignupCountry) ?? "",
+    });
+    return { ok: true as const, blockedCountries: blocked };
   });
 
 export const listPlatformOrders = createServerFn({ method: "GET" })
@@ -223,7 +343,7 @@ export const getSmtpSettings = createServerFn({ method: "GET" })
         user: "",
         hasPassword: false,
         fromEmail: "",
-        fromName: "Vela",
+        fromName: "Kart",
         secure: false,
       };
     }
@@ -261,7 +381,7 @@ export const saveSmtpSettings = createServerFn({ method: "POST" })
       user: input.user.trim(),
       pass: input.pass?.trim() ?? "",
       fromEmail,
-      fromName: input.fromName.trim() || "Vela",
+      fromName: input.fromName.trim() || "Kart",
       secure: Boolean(input.secure) || port === 465,
     };
   })
@@ -294,10 +414,10 @@ export const sendTestEmail = createServerFn({ method: "POST" })
     if (!to) throw new Error("Your account has no email.");
     await sendMail({
       to,
-      subject: "Vela SMTP test",
+      subject: "Kart SMTP test",
       html: mailLayout(
         "SMTP is working",
-        `<p style="line-height:1.6">This test was sent from the Vela owner console to <strong>${escapeHtml(to)}</strong>.</p>`,
+        `<p style="line-height:1.6">This test was sent from the Kart owner console to <strong>${escapeHtml(to)}</strong>.</p>`,
       ),
     });
     return { ok: true as const, to };

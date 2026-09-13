@@ -84,7 +84,7 @@ function DashxPayments() {
   return (
     <AdminPage
       title="Payments"
-      description="Sifalo Pay hosted checkout. Endpoints and optional platform credentials live here — merchants can still paste their own keys in shop settings."
+      description="Sifalo Pay hosted checkout. Turn on platform-wide collection, then grant individual shops their own keys under Shops if they should still bring a Sifalo account."
     >
       <Card className="mb-6 space-y-3 p-5">
         <p className="text-sm leading-relaxed text-muted">

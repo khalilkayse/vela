@@ -20,7 +20,7 @@ function DashxHome() {
   }, []);
 
   return (
-    <AdminPage title="Overview" description="Merchants, shops, and Sifalo Pay volume on this instance.">
+    <AdminPage title="Overview" description="Merchants, shops, and Sifalo Pay volume on this Kart instance.">
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Accounts" value={stats ? String(stats.users) : null} to="/dashx/users" />
         <Stat label="Shops" value={stats ? String(stats.shops) : null} to="/dashx/shops" />
@@ -30,6 +30,11 @@ function DashxHome() {
         <Stat label="Volume" value={stats ? formatPrice(stats.revenue) : null} />
       </div>
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
+        <SetupCard
+          to="/dashx/access"
+          title="Access"
+          body="Default shop country and blocked signup regions."
+        />
         <SetupCard
           to="/dashx/mail"
           title="Email"

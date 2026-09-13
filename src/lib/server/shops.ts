@@ -103,15 +103,18 @@ export const createShop = createServerFn({ method: "POST" })
     if (existing[0]) throw new Error("You already have a shop.");
     const taken = await sql<{ id: number }>`select id from shops where username = ${data.username} limit 1`;
     if (taken[0]) throw new Error("That username is taken.");
+    const { signupCountryFor } = await import("./profiles");
+    const country = await signupCountryFor(context.userId);
     const rows = await sql<ShopRow>`
-      insert into shops (user_id, username, display_name, tagline, avatar_initials, layout)
+      insert into shops (user_id, username, display_name, tagline, avatar_initials, layout, country)
       values (
         ${context.userId},
         ${data.username},
         ${data.displayName},
         ${data.tagline},
         ${initials(data.displayName)},
-        ${data.layout}
+        ${data.layout},
+        ${country}
       )
       returning *
     `;
@@ -147,6 +150,10 @@ export const updateShop = createServerFn({ method: "POST" })
     const tiktokUrl = typeof data.tiktokUrl === "string" ? emptyToNull(data.tiktokUrl) : shop.tiktok_url;
     const published = typeof data.published === "boolean" ? data.published : shop.published;
     const coverStyle = typeof data.coverStyle === "string" ? data.coverStyle : shop.cover_style;
+    const country =
+      typeof data.country === "string"
+        ? (data.country.trim().toUpperCase().slice(0, 2) || null)
+        : shop.country;
 
     let username = shop.username;
     if (typeof data.username === "string") {
@@ -176,6 +183,7 @@ export const updateShop = createServerFn({ method: "POST" })
         tiktok_url = ${tiktokUrl},
         published = ${published},
         cover_style = ${coverStyle},
+        country = ${country},
         updated_at = now()
       where user_id = ${context.userId}
       returning *
@@ -197,6 +205,10 @@ export const saveSifaloCredentials = createServerFn({ method: "POST" })
     const sql = await getSql();
     const shops = await sql<{ id: number }>`select id from shops where user_id = ${context.userId} limit 1`;
     if (!shops[0]) throw new Error("Create a shop first.");
+    const policy = await shopPayPolicy(context.userId);
+    if (!policy.canConnectOwnKeys) {
+      throw new Error("This shop is not allowed to connect its own Sifalo Pay keys.");
+    }
     await sql`
       update shops set
         sifalo_api_key = ${data.apiKey},
@@ -228,6 +240,26 @@ function emptyToNull(value: string): string | null {
   return t ? t : null;
 }
 
+async function shopPayPolicy(userId: string) {
+  const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
+  const platform = await getSifaloPlatformConfig();
+  const sql = await getSql();
+  const shops = await sql<{ allow_own_sifalo: boolean | null }>`
+    select allow_own_sifalo from shops where user_id = ${userId} limit 1
+  `;
+  const allowOwnKeys = Boolean(shops[0]?.allow_own_sifalo);
+  const platformCollects = platform.usePlatformCredentials && Boolean(platform.apiKey);
+  return {
+    platformCollects,
+    allowOwnKeys,
+    canConnectOwnKeys: !platformCollects || allowOwnKeys,
+  };
+}
+
+export const getMyPayPolicy = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => shopPayPolicy(context.userId));
+
 async function sendShopWelcome(userId: string, username: string, displayName: string) {
   try {
     const { sendMail, mailLayout, smtpConfigured, escapeHtml } = await import("@/lib/mail");
@@ -240,10 +272,10 @@ async function sendShopWelcome(userId: string, username: string, displayName: st
     const url = `${origin}/${username}`;
     await sendMail({
       to: email,
-      subject: `Your Vela page is live: ${username}`,
+      subject: `Your Kart page is live: ${username}`,
       html: mailLayout(
         "Your shop is ready",
-        `<p style="line-height:1.6">${escapeHtml(displayName)} is on Vela. Share this link:</p>
+        `<p style="line-height:1.6">${escapeHtml(displayName)} is on Kart. Share this link:</p>
          <p><a href="${escapeHtml(url)}" style="color:#4c1d95">${escapeHtml(url)}</a></p>
          <p style="line-height:1.6;color:#6b5d7a">Connect Sifalo Pay in settings when you want live checkout.</p>`,
       ),

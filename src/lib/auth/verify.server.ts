@@ -67,6 +67,12 @@ export async function getSessionUser(
   }
   const session = await auth.api.getSession({ headers });
   if (!session?.user) return null;
+  try {
+    const { isUserDisabled } = await import("../server/profiles");
+    if (await isUserDisabled(session.user.id)) return null;
+  } catch {
+    /* profiles table may not exist yet */
+  }
   return { id: session.user.id, email: session.user.email ?? null };
 }
 

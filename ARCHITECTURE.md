@@ -1,6 +1,6 @@
 # Architecture
 
-Map of Vela for people (and coding agents) changing the code. Product intent lives in [README.md](README.md). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
+Map of Kart for people (and coding agents) changing the code. Product intent lives in [README.md](README.md). How to contribute: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Runtime
 
@@ -42,17 +42,20 @@ Browser ──► TanStack Start (Vite + Nitro node-server)
 ## Auth
 
 - Email/password via Better Auth. `VITE_AUTH_ENABLED=true` at **build** time.
+- Direct social providers (Google, GitHub, X, Discord, Facebook, Apple, Microsoft) via `socialProviders` when the matching env pair is set. Catalog: `src/lib/auth/social-catalog.ts`. Wired in `src/lib/auth/social.server.ts`. Login asks `getPublicAuthMethods`.
 - `BETTER_AUTH_URL` is the public origin. Empty in production still defaults to `https://shop.sifalo.cloud`.
 - `authMiddleware` on merchant server functions; `adminMiddleware` on `/dashx` server functions.
 - Platform admins: row in `platform_admins`, plus optional `PLATFORM_ADMIN_EMAILS`. First boot inserts `owner@shop.sifalo.cloud` (`scripts/bootstrap-admin.mjs`) and prints the password **once**.
 - Do not expose `/dashx` in the merchant header, footer, sitemap, or storefront.
+- `user_profiles` holds signup country, last login, and `disabled`. Country headers live in `src/lib/geo.ts`. Blocked countries: `platform_settings.blocked_countries`.
 
 ## Data
 
 Postgres (or PGLite). Important tables:
 
 - `"user"` / `session` / `account` — Better Auth
-- `shops` — unique `username`, layout, Sifalo keys, published
+- `user_profiles` — signup country, last login, disabled
+- `shops` — unique `username`, layout, country, Sifalo keys, `allow_own_sifalo`, published
 - `products` — kind `digital` \| `service` \| `link`, delivery note/url
 - `product_files` — `object_key`, `kind` (`delivery` \| `cover`)
 - `orders` — `order_ref`, status, `sifalo_sid`, `demo`
@@ -66,6 +69,7 @@ Postgres (or PGLite). Important tables:
 | `smtp_*` | `/dashx/mail` |
 | `s3_endpoint`, `s3_region`, `s3_bucket`, `s3_access_key`, `s3_secret_key`, `s3_cdn_base`, `s3_force_path_style` | `/dashx/storage` |
 | `sifalo_gateway_url`, `sifalo_verify_url`, `sifalo_checkout_page`, `sifalo_api_key`, `sifalo_api_password`, `sifalo_use_platform` | `/dashx/payments` |
+| `blocked_countries`, `default_signup_country` | `/dashx/access` |
 
 Env vars of the same name are fallbacks if the row is empty.
 

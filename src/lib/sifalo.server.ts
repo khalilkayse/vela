@@ -209,19 +209,22 @@ export async function sifaloTestCredentials(
 export async function resolveSifaloMerchant(shop: {
   sifalo_api_key: string | null;
   sifalo_api_password: string | null;
+  allow_own_sifalo?: boolean | null;
 }): Promise<{ apiKey: string; apiPassword: string; source: "shop" | "platform" } | null> {
   const platform = await getSifaloPlatformConfig();
-  if (!platform.usePlatformCredentials && shop.sifalo_api_key && shop.sifalo_api_password) {
-    return { apiKey: shop.sifalo_api_key, apiPassword: shop.sifalo_api_password, source: "shop" };
-  }
-  if (platform.usePlatformCredentials && platform.apiKey && platform.apiPassword) {
-    return { apiKey: platform.apiKey, apiPassword: platform.apiPassword, source: "platform" };
-  }
-  if (shop.sifalo_api_key && shop.sifalo_api_password) {
-    return { apiKey: shop.sifalo_api_key, apiPassword: shop.sifalo_api_password, source: "shop" };
-  }
-  if (platform.apiKey && platform.apiPassword) {
-    return { apiKey: platform.apiKey, apiPassword: platform.apiPassword, source: "platform" };
-  }
+  const shopKeys =
+    shop.sifalo_api_key && shop.sifalo_api_password
+      ? { apiKey: shop.sifalo_api_key, apiPassword: shop.sifalo_api_password, source: "shop" as const }
+      : null;
+  const platformKeys =
+    platform.apiKey && platform.apiPassword
+      ? { apiKey: platform.apiKey, apiPassword: platform.apiPassword, source: "platform" as const }
+      : null;
+
+  if (shop.allow_own_sifalo && shopKeys) return shopKeys;
+  if (platform.usePlatformCredentials && platformKeys) return platformKeys;
+  if (!platform.usePlatformCredentials && shopKeys) return shopKeys;
+  if (platformKeys) return platformKeys;
+  if (shopKeys) return shopKeys;
   return null;
 }

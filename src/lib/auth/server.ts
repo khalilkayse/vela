@@ -39,6 +39,9 @@ import { ensureDbReady, getPglite } from "../db";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
+import { buildSocialProviders } from "./social.server";
+import { SOCIAL_CATALOG } from "./social-catalog";
+import { APP_NAME } from "../constants";
 import { pgliteDialect } from "./pglite-dialect";
 import {
   GROK_ISSUER_DEFAULT,
@@ -253,6 +256,9 @@ const grokOAuthPlugin = authConfigured
     })
   : null;
 
+const socialProviders = buildSocialProviders();
+const hasDirectSocial = Object.keys(socialProviders).length > 0;
+
 export const auth = betterAuth({
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
@@ -277,6 +283,7 @@ export const auth = betterAuth({
       enabled: true,
       trustedProviders: [
         ...GROK_PROVIDERS.map((p) => p.providerId),
+        ...SOCIAL_CATALOG.map((p) => p.id),
         GATE_PROVIDER_ID,
       ],
       // X's synthetic email is never "verified", so don't gate linking on the
@@ -290,6 +297,35 @@ export const auth = betterAuth({
   // window and reduces auth flicker. See the `auth` skill for the full
   // flicker-prevention guidance (gate on `isPending`; SSR the session).
   session: { cookieCache: { enabled: true, maxAge: 300 } },
+
+  ...(hasDirectSocial ? { socialProviders } : {}),
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (_user, ctx) => {
+          const { assertSignupAllowed } = await import("../server/profiles");
+          await assertSignupAllowed(ctx);
+        },
+        after: async (user, ctx) => {
+          const { recordSignup } = await import("../server/profiles");
+          await recordSignup(user.id, ctx);
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (session) => {
+          const { assertUserActive } = await import("../server/profiles");
+          await assertUserActive(session.userId);
+        },
+        after: async (session, ctx) => {
+          const { recordLogin } = await import("../server/profiles");
+          await recordLogin(session.userId, ctx);
+        },
+      },
+    },
+  },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
   ...(emailAndPasswordEnabled
@@ -305,7 +341,7 @@ export const auth = betterAuth({
             }
             await sendMail({
               to: user.email,
-              subject: "Reset your Vela password",
+              subject: `Reset your ${APP_NAME} password`,
               html: mailLayout(
                 "Reset your password",
                 `<p style="line-height:1.6">Use this link to choose a new password. It expires soon.</p>
@@ -325,10 +361,10 @@ export const auth = betterAuth({
             }
             await sendMail({
               to: user.email,
-              subject: "Confirm your Vela email",
+              subject: `Confirm your ${APP_NAME} email`,
               html: mailLayout(
                 "Confirm your email",
-                `<p style="line-height:1.6">Welcome to Vela. Confirm this address so we can send shop notices and receipts.</p>
+                `<p style="line-height:1.6">Welcome to ${APP_NAME}. Confirm this address so we can send shop notices and receipts.</p>
                  <p><a href="${escapeHtml(url)}" style="color:#4c1d95">Confirm email</a></p>`,
               ),
             });

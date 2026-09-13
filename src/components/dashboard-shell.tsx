@@ -87,7 +87,7 @@ export function DashboardShell() {
       <div className="min-h-screen bg-bg">
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
           <div className="flex h-16 items-center px-5">
-            <Link to="/" aria-label="Vela home">
+            <Link to="/" aria-label="Kart home">
               <Logo />
             </Link>
           </div>

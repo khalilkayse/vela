@@ -16,7 +16,7 @@ function DashxMail() {
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [fromEmail, setFromEmail] = useState("");
-  const [fromName, setFromName] = useState("Vela");
+  const [fromName, setFromName] = useState("Kart");
   const [secure, setSecure] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [loaded, setLoaded] = useState(false);

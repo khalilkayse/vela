@@ -21,6 +21,8 @@ export type ShopRow = {
   sifalo_api_password: string | null;
   sifalo_connected: boolean;
   published: boolean;
+  country?: string | null;
+  allow_own_sifalo?: boolean | null;
   created_at: unknown;
 };
 
@@ -92,7 +94,7 @@ export function mapShop(row: ShopRow): Shop {
     displayName: row.display_name,
     tagline: row.tagline ?? "",
     bio: row.bio ?? "",
-    avatarInitials: row.avatar_initials || "V",
+    avatarInitials: row.avatar_initials || "K",
     coverStyle: row.cover_style,
     layout: asLayout(row.layout),
     websiteUrl: row.website_url,
@@ -102,6 +104,8 @@ export function mapShop(row: ShopRow): Shop {
     tiktokUrl: row.tiktok_url,
     sifaloConnected: Boolean(row.sifalo_connected),
     hasSifaloCredentials: Boolean(row.sifalo_api_key && row.sifalo_api_password),
+    allowOwnSifalo: Boolean(row.allow_own_sifalo),
+    country: row.country ?? null,
     published: Boolean(row.published),
     createdAt: toIso(row.created_at),
   };

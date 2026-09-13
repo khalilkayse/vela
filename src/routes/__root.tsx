@@ -13,7 +13,7 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "A calm storefront for digital products and services, paid with Sifalo Pay.",
+        content: "Kart — storefronts for digital products and services, paid with Sifalo Pay.",
       },
       { name: "theme-color", content: "#4C1D95" },
     ],

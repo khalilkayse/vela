@@ -24,6 +24,7 @@ import { Route as DashboardPageRouteImport } from './routes/dashboard/page'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard/products'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashxIndexRouteImport } from './routes/dashx/index'
+import { Route as DashxAccessRouteImport } from './routes/dashx/access'
 import { Route as DashxMailRouteImport } from './routes/dashx/mail'
 import { Route as DashxOrdersRouteImport } from './routes/dashx/orders'
 import { Route as DashxPaymentsRouteImport } from './routes/dashx/payments'
@@ -114,6 +115,11 @@ const DashxIndexRoute = DashxIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashxRoute,
 } as any)
+const DashxAccessRoute = DashxAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => DashxRoute,
+} as any)
 const DashxMailRoute = DashxMailRouteImport.update({
   id: '/mail',
   path: '/mail',
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/access': typeof DashxAccessRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
@@ -226,6 +233,7 @@ export interface FileRoutesByTo {
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/access': typeof DashxAccessRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/access': typeof DashxAccessRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/access'
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
@@ -319,6 +329,7 @@ export interface FileRouteTypes {
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/access'
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/access'
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
@@ -490,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashx/'
       preLoaderRoute: typeof DashxIndexRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/access': {
+      id: '/dashx/access'
+      path: '/access'
+      fullPath: '/dashx/access'
+      preLoaderRoute: typeof DashxAccessRouteImport
       parentRoute: typeof DashxRoute
     }
     '/dashx/mail': {
@@ -641,6 +660,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 )
 
 interface DashxRouteChildren {
+  DashxAccessRoute: typeof DashxAccessRoute
   DashxMailRoute: typeof DashxMailRoute
   DashxOrdersRoute: typeof DashxOrdersRoute
   DashxPaymentsRoute: typeof DashxPaymentsRoute
@@ -651,6 +671,7 @@ interface DashxRouteChildren {
 }
 
 const DashxRouteChildren: DashxRouteChildren = {
+  DashxAccessRoute: DashxAccessRoute,
   DashxMailRoute: DashxMailRoute,
   DashxOrdersRoute: DashxOrdersRoute,
   DashxPaymentsRoute: DashxPaymentsRoute,

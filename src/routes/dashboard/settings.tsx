@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
@@ -8,7 +8,8 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/skeleton";
 import { LAYOUTS, type ShopLayout } from "@/lib/constants";
 import { errMsg } from "@/lib/errors";
-import { disconnectSifalo, saveSifaloCredentials, updateShop } from "@/lib/server/shops";
+import { disconnectSifalo, getMyPayPolicy, saveSifaloCredentials, updateShop } from "@/lib/server/shops";
+import { formatCountry } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/settings")({ component: SettingsPage });
@@ -26,10 +27,22 @@ function SettingsPage() {
   const [youtubeUrl, setYoutubeUrl] = useState(shop.youtubeUrl ?? "");
   const [tiktokUrl, setTiktokUrl] = useState(shop.tiktokUrl ?? "");
   const [published, setPublished] = useState(shop.published);
+  const [country, setCountry] = useState(shop.country ?? "");
   const [apiKey, setApiKey] = useState("");
   const [apiPassword, setApiPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
+  const [payPolicy, setPayPolicy] = useState<{
+    platformCollects: boolean;
+    allowOwnKeys: boolean;
+    canConnectOwnKeys: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    getMyPayPolicy()
+      .then(setPayPolicy)
+      .catch(() => setPayPolicy({ platformCollects: false, allowOwnKeys: true, canConnectOwnKeys: true }));
+  }, []);
 
   async function onSave(event: React.FormEvent) {
     event.preventDefault();
@@ -48,6 +61,7 @@ function SettingsPage() {
           youtubeUrl,
           tiktokUrl,
           published,
+          country,
         },
       });
       setShop(next);
@@ -144,6 +158,14 @@ function SettingsPage() {
             <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://" />
           </Field>
         </div>
+        <Field label="Country" hint={country ? formatCountry(country) : "Inherited from signup. Used to base the store in a market."}>
+          <Input
+            value={country}
+            onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
+            placeholder="SO"
+            maxLength={2}
+          />
+        </Field>
         <Switch checked={published} onCheckedChange={setPublished} label="Published — listed on Discover and reachable at /you" />
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save profile"}
@@ -167,8 +189,9 @@ function SettingsPage() {
               >
                 developer.sifalopay.com
               </a>
-              . Funds never pass through Vela. If checkout already works without
+              . Funds never pass through Kart. If checkout already works without
               keys here, the platform is collecting with its own merchant account.
+              Operators can still grant this shop its own keys in /dashx.
             </p>
           </div>
           {shop.hasSifaloCredentials ? (
@@ -179,6 +202,12 @@ function SettingsPage() {
             <Badge>Not connected</Badge>
           )}
         </div>
+        {payPolicy && !payPolicy.canConnectOwnKeys ? (
+          <p className="mt-6 rounded-lg border border-border bg-bg px-4 py-3 text-sm text-muted">
+            Kart is collecting with the platform Sifalo Pay account for this shop.
+            Ask the operator to enable “Allow own Sifalo keys” if you need to connect yours.
+          </p>
+        ) : (
         <form onSubmit={onConnectPay} className="mt-6 grid gap-4 sm:grid-cols-2">
           <Field label="API username">
             <Input
@@ -209,6 +238,7 @@ function SettingsPage() {
             ) : null}
           </div>
         </form>
+        )}
       </Card>
     </DashboardPage>
   );

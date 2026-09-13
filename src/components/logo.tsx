@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/lib/constants";
 
 export function Mark({ className }: { className?: string }) {
   return (
@@ -9,19 +10,12 @@ export function Mark({ className }: { className?: string }) {
     >
       <rect width="32" height="32" rx="8" fill="currentColor" className="text-primary" />
       <path
-        d="M9 22.5 16 8.5l7 14"
+        d="M10 8.5v15M10 16.2 22 8.8M10 16.2 22 23.2"
         fill="none"
         stroke="white"
         strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
-      />
-      <path
-        d="M12.2 17.2h7.6"
-        fill="none"
-        stroke="white"
-        strokeWidth="2.4"
-        strokeLinecap="round"
       />
     </svg>
   );
@@ -37,7 +31,7 @@ export function Logo({
   return (
     <span className={cn("inline-flex items-center gap-2 text-fg", className)}>
       <Mark className={markClassName} />
-      <span className="text-[17px] font-semibold tracking-[-0.03em]">Vela</span>
+      <span className="text-[17px] font-semibold tracking-[-0.03em]">{APP_NAME}</span>
     </span>
   );
 }

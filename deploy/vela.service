@@ -1,5 +1,5 @@
 [Unit]
-Description=Vela storefront
+Description=Kart storefront
 After=network.target postgresql.service
 
 [Service]

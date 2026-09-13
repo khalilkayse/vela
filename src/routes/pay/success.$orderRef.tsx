@@ -67,7 +67,7 @@ function PaySuccess() {
         </Card>
       ) : null}
       <Button asChild variant="ghost" className="mt-6">
-        <Link to="/">Back to Vela</Link>
+        <Link to="/">Back to Kart</Link>
       </Button>
     </main>
   );

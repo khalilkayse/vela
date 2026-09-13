@@ -14,7 +14,7 @@ function Discover() {
       <SiteHeader solid />
       <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Discover</p>
-        <h1 className="mt-3 font-display text-4xl tracking-tight text-fg">Studios on Vela</h1>
+        <h1 className="mt-3 font-display text-4xl tracking-tight text-fg">Studios on Kart</h1>
         <p className="mt-2 max-w-xl text-sm text-muted">
           Public shops published by makers using Sifalo Pay for checkout.
         </p>
