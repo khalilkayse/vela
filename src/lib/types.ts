@@ -40,6 +40,7 @@ export type Product = {
   slug: string;
   title: string;
   description: string;
+  bodyHtml: string;
   kind: ProductKind;
   price: number;
   currency: string;
@@ -52,6 +53,8 @@ export type Product = {
   deliveryUrl: string | null;
   published: boolean;
   featured: boolean;
+  paywalled: boolean;
+  locked: boolean;
   sortOrder: number;
   createdAt: string;
 };

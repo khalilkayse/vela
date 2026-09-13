@@ -3,7 +3,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { money } from "@/lib/utils";
 import { mapOrder, type OrderRow } from "./map";
-import { filesForPaidOrder } from "./files";
+import { filesForPaidOrder } from "./delivery.server";
 
 export const listMyOrders = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -71,10 +71,25 @@ export const getPublicOrder = createServerFn({ method: "GET" })
     `;
     if (!rows[0]) return null;
     const order = mapOrder(rows[0]);
-    const products = await sql<{ delivery_url: string | null; delivery_note: string; slug: string }>`
-      select delivery_url, delivery_note, slug from products where id = ${order.productId} limit 1
+    const products = await sql<{
+      delivery_url: string | null;
+      delivery_note: string;
+      slug: string;
+      kind: string;
+      shop_id: number;
+    }>`
+      select delivery_url, delivery_note, slug, kind, shop_id from products where id = ${order.productId} limit 1
     `;
     const files = order.status === "paid" ? await filesForPaidOrder(orderRef) : [];
+    let readUrl: string | null = null;
+    if (order.status === "paid" && products[0]?.kind === "article") {
+      const shops = await sql<{ username: string }>`
+        select username from shops where id = ${products[0].shop_id} limit 1
+      `;
+      if (shops[0]) {
+        readUrl = `/${shops[0].username}/${products[0].slug}?access=${encodeURIComponent(orderRef)}`;
+      }
+    }
     return {
       order,
       delivery:
@@ -85,5 +100,6 @@ export const getPublicOrder = createServerFn({ method: "GET" })
               files,
             }
           : null,
+      readUrl,
     };
   });

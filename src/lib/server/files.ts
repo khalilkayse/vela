@@ -1,10 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { randomBytes } from "node:crypto";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { objectKey, deleteObject, s3Configured } from "@/lib/storage";
-import { signDownloadGrant } from "@/lib/download-token";
 import { publicMediaPath } from "@/lib/upload";
+
+function randomId(): string {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 export type ProductFile = {
   id: number;
@@ -91,7 +95,7 @@ export const registerProductFile = createServerFn({ method: "POST" })
       [data.productId, context.userId],
     );
     if (!products[0]) throw new Error("Product not found.");
-    const fileId = randomBytes(8).toString("hex");
+    const fileId = randomId();
     const key = objectKey(products[0].shop_id, products[0].id, fileId, data.filename);
     const rows = await sql.query<FileRow>(
       `insert into product_files
@@ -139,19 +143,3 @@ export const removeProductFile = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-export async function filesForPaidOrder(orderRef: string): Promise<{ name: string; url: string }[]> {
-  const sql = await getSql();
-  const orders = await sql.query<{ product_id: number | null; status: string }>(
-    "select product_id, status from orders where order_ref = $1 limit 1",
-    [orderRef],
-  );
-  if (!orders[0] || orders[0].status !== "paid" || !orders[0].product_id) return [];
-  const files = await sql.query<{ id: number; filename: string }>(
-    "select id, filename from product_files where product_id = $1 and kind = 'delivery' order by id asc",
-    [orders[0].product_id],
-  );
-  return files.map((file) => ({
-    name: file.filename,
-    url: `/api/files/d/${signDownloadGrant(orderRef, file.id)}`,
-  }));
-}

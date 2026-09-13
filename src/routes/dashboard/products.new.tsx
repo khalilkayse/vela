@@ -8,7 +8,7 @@ export const Route = createFileRoute("/dashboard/products/new")({
 
 function NewProduct() {
   return (
-    <DashboardPage title="New product" description="A file, a session, or a free link on your page.">
+    <DashboardPage title="New product" description="A file, a session, an article, or a free link on your page.">
       <ProductForm />
     </DashboardPage>
   );

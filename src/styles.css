@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "quill/dist/quill.snow.css";
 
 @theme {
   --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
@@ -143,3 +144,125 @@
   );
   background-size: 22px 22px;
 }
+
+.rich-editor .ql-toolbar.ql-snow {
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: var(--color-bg);
+  font-family: var(--font-sans);
+  padding: 8px;
+}
+
+.rich-editor .ql-container.ql-snow {
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  background: var(--color-surface);
+  min-height: 10rem;
+}
+
+.rich-editor-tall .ql-container.ql-snow,
+.rich-editor-tall .ql-editor {
+  min-height: 18rem;
+}
+
+.rich-editor .ql-editor {
+  min-height: 10rem;
+  color: var(--color-fg);
+  line-height: 1.65;
+}
+
+.rich-editor .ql-editor.ql-blank::before {
+  color: var(--color-subtle);
+  font-style: normal;
+}
+
+.rich-editor .ql-snow .ql-stroke {
+  stroke: var(--color-fg);
+}
+
+.rich-editor .ql-snow .ql-fill {
+  fill: var(--color-fg);
+}
+
+.rich-editor .ql-snow .ql-picker-label {
+  color: var(--color-fg);
+}
+
+.rich-editor .ql-snow.ql-toolbar button {
+  width: 28px;
+  height: 28px;
+}
+
+.rich-editor .ql-snow.ql-toolbar button:hover,
+.rich-editor .ql-snow.ql-toolbar button.ql-active {
+  color: var(--color-primary);
+}
+
+.rich-editor .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--color-primary);
+}
+
+.rich-editor .ql-snow.ql-toolbar button.ql-active .ql-fill {
+  fill: var(--color-primary);
+}
+
+.rich-editor .ql-snow .ql-tooltip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-fg);
+  border-radius: var(--radius-sm);
+}
+
+.rich-html {
+  color: var(--color-fg);
+  line-height: 1.7;
+}
+
+.rich-html p {
+  margin: 0 0 1em;
+}
+
+.rich-html p:last-child {
+  margin-bottom: 0;
+}
+
+.rich-html h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 1.4em 0 0.5em;
+  color: var(--color-fg);
+}
+
+.rich-html h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1.2em 0 0.4em;
+  color: var(--color-fg);
+}
+
+.rich-html ul,
+.rich-html ol {
+  margin: 0 0 1em;
+  padding-left: 1.25rem;
+}
+
+.rich-html a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rich-html blockquote {
+  border-left: 3px solid var(--color-primary);
+  margin: 0 0 1em;
+  padding-left: 1rem;
+  color: var(--color-muted);
+}
+

@@ -13,6 +13,7 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
   const [accepted, setAccepted] = useState(!shop.terms);
   const [busy, setBusy] = useState(false);
   const isFree = product.kind === "link" || product.price <= 0;
+  const isArticle = product.kind === "article";
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -77,14 +78,18 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
         {busy
           ? "Preparing checkout…"
           : isFree
-            ? product.buttonLabel || "Get it free"
-            : `${product.buttonLabel || "Buy now"} · ${formatPrice(product.price, product.currency)}`}
+            ? product.buttonLabel || (isArticle ? "Read" : "Get it free")
+            : `${product.buttonLabel || (isArticle ? "Unlock" : "Buy now")} · ${formatPrice(product.price, product.currency)}`}
       </Button>
       <p className="text-center text-xs leading-relaxed text-muted">
         {isFree
-          ? "No payment required."
+          ? isArticle
+            ? "This article is free to read."
+            : "No payment required."
           : shop.checkoutLive
-            ? `You will complete payment on Sifalo Pay. Funds go to ${shop.displayName}.`
+            ? isArticle
+              ? `You will complete payment on Sifalo Pay. Then you can read it on ${shop.displayName}'s page.`
+              : `You will complete payment on Sifalo Pay. Funds go to ${shop.displayName}.`
             : "This shop has not connected Sifalo Pay yet. Checkout will run in demo mode so you can preview the flow."}
       </p>
     </form>

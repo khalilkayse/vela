@@ -52,10 +52,32 @@ export const RESERVED_USERNAMES = new Set([
 export const PRODUCT_KINDS = [
   { id: "digital", label: "Digital product", hint: "Files, templates, courses, downloads" },
   { id: "service", label: "Service", hint: "Sessions, audits, retainers" },
+  { id: "article", label: "Article", hint: "A story or essay. Free, or paid to read." },
   { id: "link", label: "Free link", hint: "A public resource. No payment." },
 ] as const;
 
 export type ProductKind = (typeof PRODUCT_KINDS)[number]["id"];
+
+export function kindLabel(kind: ProductKind): string {
+  switch (kind) {
+    case "service":
+      return "Service";
+    case "link":
+      return "Free link";
+    case "article":
+      return "Article";
+    default:
+      return "Digital";
+  }
+}
+
+export function defaultButtonLabel(kind: ProductKind): string {
+  if (kind === "link") return "Open";
+  if (kind === "article") return "Read";
+  return "Buy now";
+}
+
+export const DEFAULT_BUTTON_LABELS = ["Buy now", "Open", "Read", "Unlock"] as const;
 
 export const LAYOUTS = [
   {

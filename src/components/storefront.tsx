@@ -3,6 +3,8 @@ import { Globe, Instagram, Youtube } from "lucide-react";
 import { ProductCover } from "@/components/product-cover";
 import { Logo } from "@/components/logo";
 import { Badge } from "@/components/ui/card";
+import { kindLabel } from "@/lib/constants";
+import { htmlToPlain } from "@/lib/html";
 import type { PageBlock, Product, Shop } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,11 @@ function TikTokMark({ className }: { className?: string }) {
   );
 }
 
+function priceLabel(product: Product): string {
+  if (product.kind === "link" || product.price <= 0) return "Free";
+  return formatPrice(product.price, product.currency);
+}
+
 export function Storefront({
   shop,
   products,
@@ -39,7 +46,8 @@ export function Storefront({
   products: Product[];
   blocks: PageBlock[];
 }) {
-  const paid = products.filter((p) => p.kind !== "link");
+  const articles = products.filter((p) => p.kind === "article");
+  const paid = products.filter((p) => p.kind !== "link" && p.kind !== "article");
   const links = products.filter((p) => p.kind === "link");
   const featured = paid.filter((p) => p.featured);
   const rest = paid.filter((p) => !p.featured);
@@ -47,6 +55,7 @@ export function Storefront({
   const isLinks = shop.layout === "links";
   const isShop = shop.layout === "shop";
   const isStudio = shop.layout === "hybrid";
+  const featuredArticles = [...articles.filter((p) => p.featured), ...articles.filter((p) => !p.featured)];
 
   return (
     <div className="min-h-screen bg-bg">
@@ -100,7 +109,7 @@ export function Storefront({
           </section>
         ) : null}
 
-        {isLinks && (links.length > 0 || catalog.length > 0) ? (
+        {isLinks && (links.length > 0 || catalog.length > 0 || featuredArticles.length > 0) ? (
           <section className="mt-3 space-y-3">
             {catalog.map((product) => (
               <Link
@@ -110,9 +119,18 @@ export function Storefront({
                 className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-fg shadow-soft"
               >
                 <span className="truncate">{product.title}</span>
-                <span className="shrink-0 tabular-nums text-muted">
-                  {formatPrice(product.price, product.currency)}
-                </span>
+                <span className="shrink-0 tabular-nums text-muted">{priceLabel(product)}</span>
+              </Link>
+            ))}
+            {featuredArticles.map((product) => (
+              <Link
+                key={product.id}
+                to="/$username/$slug"
+                params={{ username: shop.username, slug: product.slug }}
+                className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-fg shadow-soft"
+              >
+                <span className="truncate">{product.title}</span>
+                <span className="shrink-0 tabular-nums text-muted">{priceLabel(product)}</span>
               </Link>
             ))}
             {links.map((product) => (
@@ -144,6 +162,20 @@ export function Storefront({
           </section>
         ) : null}
 
+        {featuredArticles.length > 0 && !isLinks ? (
+          <section className="mt-10">
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold tracking-tight text-fg">Articles</h2>
+              <span className="text-xs text-muted">{featuredArticles.length} listed</span>
+            </div>
+            <div className="space-y-3">
+              {featuredArticles.map((product) => (
+                <ArticleRow key={product.id} shop={shop} product={product} />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {links.length > 0 && !isLinks ? (
           <section className="mt-10">
             <h2 className="mb-3 text-sm font-semibold tracking-tight text-fg">Free resources</h2>
@@ -163,7 +195,7 @@ export function Storefront({
           </section>
         ) : null}
 
-        {catalog.length === 0 && links.length === 0 && blocks.length === 0 ? (
+        {catalog.length === 0 && links.length === 0 && featuredArticles.length === 0 && blocks.length === 0 ? (
           <p className="mt-12 text-center text-sm text-muted">Nothing listed yet.</p>
         ) : null}
 
@@ -214,6 +246,29 @@ function Socials({ shop, className }: { shop: Shop; className?: string }) {
   );
 }
 
+function ArticleRow({ shop, product }: { shop: Shop; product: Product }) {
+  const dek = htmlToPlain(product.description);
+  return (
+    <Link
+      to="/$username/$slug"
+      params={{ username: shop.username, slug: product.slug }}
+      className="block rounded-xl border border-border bg-surface p-5 shadow-soft transition-[transform] duration-150 hover:-translate-y-0.5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-display text-xl font-semibold tracking-tight text-fg">{product.title}</p>
+          {dek ? <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted">{dek}</p> : null}
+        </div>
+        <p className="shrink-0 tabular-nums text-sm font-semibold text-fg">{priceLabel(product)}</p>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <Badge tone="primary">{product.paywalled ? "Paid read" : "Article"}</Badge>
+        {product.featured ? <Badge>Featured</Badge> : null}
+      </div>
+    </Link>
+  );
+}
+
 export function ProductCard({
   shop,
   product,
@@ -223,6 +278,7 @@ export function ProductCard({
   product: Product;
   compact?: boolean;
 }) {
+  const dek = htmlToPlain(product.description);
   return (
     <Link
       to="/$username/$slug"
@@ -239,16 +295,12 @@ export function ProductCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-medium text-fg">{product.title}</p>
-            {product.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-muted">{product.description}</p>
-            ) : null}
+            {dek ? <p className="mt-1 line-clamp-2 text-sm text-muted">{dek}</p> : null}
           </div>
-          <p className="shrink-0 tabular-nums text-sm font-semibold text-fg">
-            {product.kind === "link" ? "Free" : formatPrice(product.price, product.currency)}
-          </p>
+          <p className="shrink-0 tabular-nums text-sm font-semibold text-fg">{priceLabel(product)}</p>
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <Badge tone="primary">{product.kind === "service" ? "Service" : "Digital"}</Badge>
+          <Badge tone="primary">{kindLabel(product.kind)}</Badge>
           {product.featured ? <Badge>Featured</Badge> : null}
         </div>
       </div>

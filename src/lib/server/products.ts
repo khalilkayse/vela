@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
-import { slugify } from "@/lib/utils";
+import { defaultButtonLabel, type ProductKind } from "@/lib/constants";
+import { htmlToPlain } from "@/lib/html";
+import { parsePrice, slugify, money } from "@/lib/utils";
 import { publicMediaPath } from "@/lib/upload";
 import { decorateShop, mapProduct, type ProductRow, type ShopRow } from "./map";
 
@@ -12,8 +14,10 @@ async function requireShop(userId: string) {
   return rows[0];
 }
 
-function parseKind(value: unknown): "digital" | "service" | "link" {
-  if (value === "digital" || value === "service" || value === "link") return value;
+function parseKind(value: unknown): ProductKind {
+  if (value === "digital" || value === "service" || value === "link" || value === "article") {
+    return value;
+  }
   return "digital";
 }
 
@@ -26,6 +30,28 @@ async function galleryFor(productId: number) {
   return rows.map((row) => ({ id: row.id, url: publicMediaPath(row.id) }));
 }
 
+async function mapOwned(row: ProductRow) {
+  const { sanitizeHtml } = await import("./sanitize");
+  return mapProduct(row, {
+    gallery: await galleryFor(row.id),
+    bodyHtml: sanitizeHtml(row.body_html ?? ""),
+    unlocked: true,
+  });
+}
+
+async function orderUnlocksProduct(orderRef: string | undefined, productId: number): Promise<boolean> {
+  const ref = (orderRef ?? "").trim();
+  if (!ref) return false;
+  const sql = await getSql();
+  const rows = await sql.query<{ id: number }>(
+    `select id from orders
+     where order_ref = $1 and product_id = $2 and status = 'paid'
+     limit 1`,
+    [ref, productId],
+  );
+  return Boolean(rows[0]);
+}
+
 export const listMyProducts = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
@@ -34,7 +60,7 @@ export const listMyProducts = createServerFn({ method: "GET" })
       select * from products where user_id = ${context.userId}
       order by sort_order asc, id desc
     `;
-    return Promise.all(rows.map(async (row) => mapProduct(row, { gallery: await galleryFor(row.id) })));
+    return Promise.all(rows.map((row) => mapOwned(row)));
   });
 
 export const getMyProduct = createServerFn({ method: "GET" })
@@ -46,13 +72,14 @@ export const getMyProduct = createServerFn({ method: "GET" })
       select * from products where id = ${id} and user_id = ${context.userId} limit 1
     `;
     if (!rows[0]) return null;
-    return mapProduct(rows[0], { gallery: await galleryFor(rows[0].id) });
+    return mapOwned(rows[0]);
   });
 
 export const getPublicProduct = createServerFn({ method: "GET" })
-  .validator((input: { username: string; slug: string }) => ({
+  .validator((input: { username: string; slug: string; access?: string }) => ({
     username: input.username.trim().toLowerCase(),
     slug: input.slug.trim(),
+    access: (input.access ?? "").trim() || undefined,
   }))
   .handler(async ({ data }) => {
     const sql = await getSql();
@@ -66,9 +93,18 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       limit 1
     `;
     if (!products[0]) return null;
+    const row = products[0];
+    const kind = parseKind(row.kind);
+    const paywalled = kind === "article" && money(row.price) > 0;
+    const unlocked = !paywalled || (await orderUnlocksProduct(data.access, row.id));
+    const { sanitizeHtml } = await import("./sanitize");
     return {
       shop: await decorateShop(shops[0]),
-      product: mapProduct(products[0], { gallery: await galleryFor(products[0].id) }),
+      product: mapProduct(row, {
+        gallery: await galleryFor(row.id),
+        bodyHtml: unlocked ? sanitizeHtml(row.body_html ?? "") : "",
+        unlocked,
+      }),
     };
   });
 
@@ -78,6 +114,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
     id?: number;
     title: string;
     description?: string;
+    bodyHtml?: string;
     kind?: string;
     price?: number | string;
     coverStyle?: string;
@@ -89,19 +126,24 @@ export const upsertProduct = createServerFn({ method: "POST" })
     slug?: string;
   }) => {
     const title = (input.title ?? "").trim();
-    if (!title) throw new Error("Title is required.");
+    if (!title) throw new Error("Add a title.");
     const kind = parseKind(input.kind);
-    const price = Number(input.price ?? 0);
+    let price = parsePrice(input.price ?? 0);
     if (!Number.isFinite(price) || price < 0) throw new Error("Enter a valid price.");
-    if (kind !== "link" && price <= 0) throw new Error("Paid products need a price above zero.");
+    if (kind === "link") price = 0;
+    if (kind !== "link" && kind !== "article" && price <= 0) {
+      throw new Error("Enter a price above zero, or pick Article / Free link.");
+    }
+    if (kind === "article" && price < 0) throw new Error("Enter a valid price.");
     return {
       id: input.id,
       title: title.slice(0, 80),
-      description: (input.description ?? "").trim().slice(0, 4000),
+      description: (input.description ?? "").slice(0, 20_000),
+      bodyHtml: kind === "article" ? (input.bodyHtml ?? "").slice(0, 120_000) : "",
       kind,
-      price: kind === "link" ? 0 : Number(price.toFixed(2)),
+      price: Number(price.toFixed(2)),
       coverStyle: (input.coverStyle ?? "mesh-1").slice(0, 24),
-      buttonLabel: (input.buttonLabel ?? (kind === "link" ? "Open" : "Buy now")).trim().slice(0, 32),
+      buttonLabel: (input.buttonLabel ?? defaultButtonLabel(kind)).trim().slice(0, 32),
       deliveryNote: (input.deliveryNote ?? "").trim().slice(0, 2000),
       deliveryUrl: (input.deliveryUrl ?? "").trim().slice(0, 500) || null,
       published: input.published !== false,
@@ -112,6 +154,12 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const shop = await requireShop(context.userId);
     const sql = await getSql();
+    const { sanitizeHtml } = await import("./sanitize");
+    const description = sanitizeHtml(data.description, 20_000);
+    const bodyHtml = data.kind === "article" ? sanitizeHtml(data.bodyHtml, 120_000) : "";
+    if (data.kind === "article" && data.published && !htmlToPlain(bodyHtml)) {
+      throw new Error("Write the article before publishing, or save it as a draft.");
+    }
 
     const clash = data.id
       ? await sql.query<{ id: number }>(
@@ -128,7 +176,8 @@ export const upsertProduct = createServerFn({ method: "POST" })
       const rows = await sql<ProductRow>`
         update products set
           title = ${data.title},
-          description = ${data.description},
+          description = ${description},
+          body_html = ${bodyHtml},
           kind = ${data.kind},
           price = ${data.price},
           cover_style = ${data.coverStyle},
@@ -143,7 +192,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
         returning *
       `;
       if (!rows[0]) throw new Error("Product not found.");
-      return mapProduct(rows[0], { gallery: await galleryFor(rows[0].id) });
+      return mapOwned(rows[0]);
     }
 
     const count = await sql<{ n: number }>`
@@ -151,17 +200,17 @@ export const upsertProduct = createServerFn({ method: "POST" })
     `;
     const rows = await sql<ProductRow>`
       insert into products (
-        shop_id, user_id, slug, title, description, kind, price,
+        shop_id, user_id, slug, title, description, body_html, kind, price,
         cover_style, button_label, delivery_note, delivery_url, published, featured, sort_order
       ) values (
-        ${shop.id}, ${context.userId}, ${slug}, ${data.title}, ${data.description},
+        ${shop.id}, ${context.userId}, ${slug}, ${data.title}, ${description}, ${bodyHtml},
         ${data.kind}, ${data.price}, ${data.coverStyle}, ${data.buttonLabel},
         ${data.deliveryNote}, ${data.deliveryUrl}, ${data.published}, ${data.featured},
         ${count[0]?.n ?? 0}
       )
       returning *
     `;
-    return mapProduct(rows[0], { gallery: [] });
+    return mapOwned(rows[0]);
   });
 
 export const deleteProduct = createServerFn({ method: "POST" })

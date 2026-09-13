@@ -9,7 +9,7 @@ import {
   getSifaloPlatformConfig,
   resolveSifaloMerchant,
 } from "@/lib/sifalo.server";
-import { filesForPaidOrder } from "./files";
+import { filesForPaidOrder } from "./delivery.server";
 import { BRAND_HEX } from "@/lib/constants";
 
 function validEmail(value: string): boolean {
@@ -51,6 +51,12 @@ async function notifyPaidOrder(orderRef: string): Promise<void> {
     const successUrl = `${site}/pay/success/${encodeURIComponent(orderRef)}`;
 
     const deliveryBits: string[] = [];
+    if (product?.kind === "article" && shop) {
+      const readUrl = `${site}/${shop.username}/${product.slug}?access=${encodeURIComponent(orderRef)}`;
+      deliveryBits.push(
+        `<p style="line-height:1.6">Read it here (this link is your access): <a href="${escapeHtml(readUrl)}" style="color:${BRAND_HEX.primary}">${escapeHtml(readUrl)}</a></p>`,
+      );
+    }
     if (product?.delivery_note) {
       deliveryBits.push(`<p style="line-height:1.6">${escapeHtml(product.delivery_note)}</p>`);
     }

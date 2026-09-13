@@ -42,6 +42,11 @@ function PaySuccess() {
           {formatPrice(order.amount, order.currency)}
         </p>
       </Card>
+      {paid && data.readUrl ? (
+        <Button asChild className="mt-4 w-full">
+          <a href={data.readUrl}>Read the article</a>
+        </Button>
+      ) : null}
       {paid && delivery && (delivery.note || delivery.url || delivery.files.length > 0) ? (
         <Card className="mt-4 p-5">
           <p className="text-xs uppercase tracking-[0.12em] text-muted">Delivery</p>

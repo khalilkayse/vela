@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Menu,
   X,
+  Newspaper,
 } from "lucide-react";
 import { Logo, Mark } from "@/components/logo";
 import { UserButton } from "@/lib/auth/gates";
@@ -36,10 +37,13 @@ export function useShop(): ShopCtx {
 const NAV = [
   { to: "/dashboard", label: "Home", icon: Home, exact: true },
   { to: "/dashboard/products", label: "Products", icon: Package, exact: false },
+  { to: "/dashboard/articles", label: "Articles", icon: Newspaper, exact: false },
   { to: "/dashboard/orders", label: "Orders", icon: Receipt, exact: false },
   { to: "/dashboard/page", label: "Page", icon: LayoutList, exact: false },
   { to: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ] as const;
+
+const BOTTOM_NAV = NAV.filter((item) => item.to !== "/dashboard/articles");
 
 function navActive(pathname: string, to: string, exact: boolean) {
   if (exact) return pathname === to;
@@ -135,7 +139,7 @@ export function DashboardShell() {
         </div>
 
         <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface lg:hidden">
-          {NAV.map((item) => {
+          {BOTTOM_NAV.map((item) => {
             const Icon = item.icon;
             const active = navActive(pathname, item.to, item.exact);
             return (

@@ -37,6 +37,7 @@ export type ProductRow = {
   slug: string;
   title: string;
   description: string;
+  body_html?: string | null;
   kind: string;
   price: unknown;
   currency: string;
@@ -90,7 +91,9 @@ function asLayout(value: string): ShopLayout {
 }
 
 function asKind(value: string): ProductKind {
-  if (value === "digital" || value === "service" || value === "link") return value;
+  if (value === "digital" || value === "service" || value === "link" || value === "article") {
+    return value;
+  }
   return "digital";
 }
 
@@ -125,8 +128,15 @@ export function mapShop(row: ShopRow, extras?: { checkoutLive?: boolean }): Shop
   };
 }
 
-export function mapProduct(row: ProductRow, extras?: { gallery?: ProductImage[] }): Product {
+export function mapProduct(
+  row: ProductRow,
+  extras?: { gallery?: ProductImage[]; bodyHtml?: string; unlocked?: boolean },
+): Product {
   const coverFileId = row.cover_file_id ?? null;
+  const kind = asKind(row.kind);
+  const price = money(row.price);
+  const paywalled = kind === "article" && price > 0;
+  const locked = paywalled && extras?.unlocked !== true;
   return {
     id: row.id,
     shopId: row.shop_id,
@@ -134,18 +144,21 @@ export function mapProduct(row: ProductRow, extras?: { gallery?: ProductImage[] 
     slug: row.slug,
     title: row.title,
     description: row.description ?? "",
-    kind: asKind(row.kind),
-    price: money(row.price),
+    bodyHtml: locked ? "" : (extras?.bodyHtml ?? ""),
+    kind,
+    price,
     currency: row.currency || "USD",
     coverStyle: row.cover_style,
     coverFileId,
     coverUrl: coverFileId ? publicMediaPath(coverFileId) : null,
     gallery: extras?.gallery ?? [],
-    buttonLabel: row.button_label || "Buy now",
+    buttonLabel: row.button_label || (kind === "article" ? "Read" : kind === "link" ? "Open" : "Buy now"),
     deliveryNote: row.delivery_note ?? "",
     deliveryUrl: row.delivery_url,
     published: Boolean(row.published),
     featured: Boolean(row.featured),
+    paywalled,
+    locked,
     sortOrder: row.sort_order ?? 0,
     createdAt: toIso(row.created_at),
   };

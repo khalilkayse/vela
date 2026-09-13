@@ -19,6 +19,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as UsernameIndexRouteImport } from './routes/$username/index'
 import { Route as UsernameSlugRouteImport } from './routes/$username.$slug'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardArticlesRouteImport } from './routes/dashboard/articles'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardPageRouteImport } from './routes/dashboard/page'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard/products'
@@ -34,6 +35,9 @@ import { Route as DashxUsersRouteImport } from './routes/dashx/users'
 import { Route as PayReturnRouteImport } from './routes/pay/return'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiFilesUploadRouteImport } from './routes/api/files/upload'
+import { Route as DashboardArticlesIndexRouteImport } from './routes/dashboard/articles.index'
+import { Route as DashboardArticlesNewRouteImport } from './routes/dashboard/articles.new'
+import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products.index'
 import { Route as DashboardProductsIdRouteImport } from './routes/dashboard/products.$id'
 import { Route as DashboardProductsNewRouteImport } from './routes/dashboard/products.new'
 import { Route as PayDemoOrderRefRouteImport } from './routes/pay/demo.$orderRef'
@@ -89,6 +93,11 @@ const UsernameSlugRoute = UsernameSlugRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardArticlesRoute = DashboardArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
@@ -166,6 +175,21 @@ const ApiFilesUploadRoute = ApiFilesUploadRouteImport.update({
   path: '/api/files/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardArticlesIndexRoute = DashboardArticlesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardArticlesRoute,
+} as any)
+const DashboardArticlesNewRoute = DashboardArticlesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => DashboardArticlesRoute,
+} as any)
+const DashboardProductsIndexRoute = DashboardProductsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardProductsRoute,
+} as any)
 const DashboardProductsIdRoute = DashboardProductsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -206,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/$username/$slug': typeof UsernameSlugRoute
+  '/dashboard/articles': typeof DashboardArticlesRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
@@ -223,10 +248,13 @@ export interface FileRoutesByFullPath {
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/dashboard/articles/': typeof DashboardArticlesIndexRoute
+  '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
   '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
@@ -238,7 +266,6 @@ export interface FileRoutesByTo {
   '/$username/$slug': typeof UsernameSlugRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
-  '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashx/access': typeof DashxAccessRoute
   '/dashx/mail': typeof DashxMailRoute
@@ -253,10 +280,13 @@ export interface FileRoutesByTo {
   '/dashx': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/dashboard/articles': typeof DashboardArticlesIndexRoute
+  '/dashboard/products': typeof DashboardProductsIndexRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
   '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
@@ -270,6 +300,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/$username/$slug': typeof UsernameSlugRoute
+  '/dashboard/articles': typeof DashboardArticlesRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
@@ -287,10 +318,13 @@ export interface FileRoutesById {
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/dashboard/articles/': typeof DashboardArticlesIndexRoute
+  '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
   '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
@@ -305,6 +339,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/$username/$slug'
+    | '/dashboard/articles'
     | '/dashboard/orders'
     | '/dashboard/page'
     | '/dashboard/products'
@@ -322,10 +357,13 @@ export interface FileRouteTypes {
     | '/dashx/'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/dashboard/articles/'
+    | '/dashboard/products/'
     | '/api/files/d/$token'
     | '/api/files/public/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -337,7 +375,6 @@ export interface FileRouteTypes {
     | '/$username/$slug'
     | '/dashboard/orders'
     | '/dashboard/page'
-    | '/dashboard/products'
     | '/dashboard/settings'
     | '/dashx/access'
     | '/dashx/mail'
@@ -352,10 +389,13 @@ export interface FileRouteTypes {
     | '/dashx'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/dashboard/articles'
+    | '/dashboard/products'
     | '/api/files/d/$token'
     | '/api/files/public/$id'
   id:
@@ -368,6 +408,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/$username/$slug'
+    | '/dashboard/articles'
     | '/dashboard/orders'
     | '/dashboard/page'
     | '/dashboard/products'
@@ -385,10 +426,13 @@ export interface FileRouteTypes {
     | '/dashx/'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/dashboard/articles/'
+    | '/dashboard/products/'
     | '/api/files/d/$token'
     | '/api/files/public/$id'
   fileRoutesById: FileRoutesById
@@ -480,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/articles': {
+      id: '/dashboard/articles'
+      path: '/articles'
+      fullPath: '/dashboard/articles'
+      preLoaderRoute: typeof DashboardArticlesRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/orders': {
@@ -587,6 +638,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFilesUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/articles/': {
+      id: '/dashboard/articles/'
+      path: '/'
+      fullPath: '/dashboard/articles/'
+      preLoaderRoute: typeof DashboardArticlesIndexRouteImport
+      parentRoute: typeof DashboardArticlesRoute
+    }
+    '/dashboard/articles/new': {
+      id: '/dashboard/articles/new'
+      path: '/new'
+      fullPath: '/dashboard/articles/new'
+      preLoaderRoute: typeof DashboardArticlesNewRouteImport
+      parentRoute: typeof DashboardArticlesRoute
+    }
+    '/dashboard/products/': {
+      id: '/dashboard/products/'
+      path: '/'
+      fullPath: '/dashboard/products/'
+      preLoaderRoute: typeof DashboardProductsIndexRouteImport
+      parentRoute: typeof DashboardProductsRoute
+    }
     '/dashboard/products/$id': {
       id: '/dashboard/products/$id'
       path: '/$id'
@@ -646,20 +718,36 @@ const UsernameRouteWithChildren = UsernameRoute._addFileChildren(
   UsernameRouteChildren,
 )
 
+interface DashboardArticlesRouteChildren {
+  DashboardArticlesNewRoute: typeof DashboardArticlesNewRoute
+  DashboardArticlesIndexRoute: typeof DashboardArticlesIndexRoute
+}
+
+const DashboardArticlesRouteChildren: DashboardArticlesRouteChildren = {
+  DashboardArticlesNewRoute: DashboardArticlesNewRoute,
+  DashboardArticlesIndexRoute: DashboardArticlesIndexRoute,
+}
+
+const DashboardArticlesRouteWithChildren =
+  DashboardArticlesRoute._addFileChildren(DashboardArticlesRouteChildren)
+
 interface DashboardProductsRouteChildren {
   DashboardProductsIdRoute: typeof DashboardProductsIdRoute
   DashboardProductsNewRoute: typeof DashboardProductsNewRoute
+  DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
 }
 
 const DashboardProductsRouteChildren: DashboardProductsRouteChildren = {
   DashboardProductsIdRoute: DashboardProductsIdRoute,
   DashboardProductsNewRoute: DashboardProductsNewRoute,
+  DashboardProductsIndexRoute: DashboardProductsIndexRoute,
 }
 
 const DashboardProductsRouteWithChildren =
   DashboardProductsRoute._addFileChildren(DashboardProductsRouteChildren)
 
 interface DashboardRouteChildren {
+  DashboardArticlesRoute: typeof DashboardArticlesRouteWithChildren
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardPageRoute: typeof DashboardPageRoute
   DashboardProductsRoute: typeof DashboardProductsRouteWithChildren
@@ -668,6 +756,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardArticlesRoute: DashboardArticlesRouteWithChildren,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardPageRoute: DashboardPageRoute,
   DashboardProductsRoute: DashboardProductsRouteWithChildren,

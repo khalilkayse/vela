@@ -20,6 +20,17 @@ export function money(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+export function parsePrice(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : NaN;
+  let raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  raw = raw.replace(/^[^\d-]+/, "");
+  if (raw.includes(",") && !raw.includes(".")) raw = raw.replace(",", ".");
+  else raw = raw.replace(/,/g, "");
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 export function formatPrice(value: unknown, currency = "USD"): string {
   const n = money(value);
   try {
