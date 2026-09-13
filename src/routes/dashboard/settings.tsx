@@ -155,17 +155,20 @@ function SettingsPage() {
           <div>
             <h2 className="text-base font-semibold text-fg">Sifalo Pay</h2>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              Use the API username and password from your Sifalo Pay dashboard. Checkout is initiated with
-              Basic Auth against{" "}
+              Use the API username and password from your Sifalo Pay dashboard
+              (Merchant → API). Checkout posts to the gateway configured by the
+              platform, then verifies the <code className="text-fg">sid</code> on
+              return. Docs:{" "}
               <a
                 className="font-medium text-fg underline-offset-4 hover:underline"
-                href="https://developer.sifalopay.com/sifalo-pay-checkout"
+                href="https://developer.sifalopay.com/docs/hosted-checkout"
                 target="_blank"
                 rel="noreferrer"
               >
-                api.sifalopay.com/gateway
+                developer.sifalopay.com
               </a>
-              . Funds never pass through Vela.
+              . Funds never pass through Vela. If checkout already works without
+              keys here, the platform is collecting with its own merchant account.
             </p>
           </div>
           {shop.hasSifaloCredentials ? (

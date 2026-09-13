@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Receipt, Users, Mail, Menu, X } from "lucide-react";
+import { LayoutDashboard, Store, Receipt, Users, Mail, HardDrive, CreditCard, Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -18,6 +18,8 @@ const NAV = [
   { to: "/dashx/orders", label: "Orders", icon: Receipt, exact: false },
   { to: "/dashx/users", label: "Accounts", icon: Users, exact: false },
   { to: "/dashx/mail", label: "Email", icon: Mail, exact: false },
+  { to: "/dashx/storage", label: "Storage", icon: HardDrive, exact: false },
+  { to: "/dashx/payments", label: "Payments", icon: CreditCard, exact: false },
 ] as const;
 
 function navActive(pathname: string, to: string, exact: boolean) {

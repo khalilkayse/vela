@@ -266,7 +266,8 @@ export const saveSmtpSettings = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }) => {
-    const { writeSettings, getSmtpConfig } = await import("@/lib/mail");
+    const { getSmtpConfig } = await import("@/lib/mail");
+    const { writeSettings } = await import("@/lib/platform-settings");
     const entries: Record<string, string> = {
       smtp_host: data.host,
       smtp_port: String(data.port),
@@ -300,4 +301,138 @@ export const sendTestEmail = createServerFn({ method: "POST" })
       ),
     });
     return { ok: true as const, to };
+  });
+
+export const getStorageSettings = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { getS3Config } = await import("@/lib/storage");
+    const s3 = await getS3Config();
+    if (!s3) {
+      return {
+        configured: false,
+        endpoint: "",
+        region: "auto",
+        bucket: "",
+        accessKey: "",
+        hasSecret: false,
+        cdnBase: "",
+        forcePathStyle: true,
+      };
+    }
+    return {
+      configured: true,
+      endpoint: s3.endpoint,
+      region: s3.region,
+      bucket: s3.bucket,
+      accessKey: s3.accessKey,
+      hasSecret: Boolean(s3.secretKey),
+      cdnBase: s3.cdnBase,
+      forcePathStyle: s3.forcePathStyle,
+    };
+  });
+
+export const saveStorageSettings = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: {
+    endpoint: string;
+    region: string;
+    bucket: string;
+    accessKey: string;
+    secret?: string;
+    cdnBase: string;
+    forcePathStyle: boolean;
+  }) => ({
+    endpoint: input.endpoint.trim(),
+    region: input.region.trim() || "auto",
+    bucket: input.bucket.trim(),
+    accessKey: input.accessKey.trim(),
+    secret: input.secret?.trim() ?? "",
+    cdnBase: input.cdnBase.trim().replace(/\/+$/, ""),
+    forcePathStyle: Boolean(input.forcePathStyle),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.bucket || !data.accessKey) throw new Error("Bucket and access key are required.");
+    const { writeSettings } = await import("@/lib/platform-settings");
+    const { getS3Config } = await import("@/lib/storage");
+    const entries: Record<string, string> = {
+      s3_endpoint: data.endpoint,
+      s3_region: data.region,
+      s3_bucket: data.bucket,
+      s3_access_key: data.accessKey,
+      s3_cdn_base: data.cdnBase,
+      s3_force_path_style: data.forcePathStyle ? "1" : "0",
+    };
+    if (data.secret) entries.s3_secret_key = data.secret;
+    else {
+      const current = await getS3Config();
+      if (current?.secretKey) entries.s3_secret_key = current.secretKey;
+    }
+    await writeSettings(entries);
+    return { ok: true as const };
+  });
+
+export const testStorage = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { testS3 } = await import("@/lib/storage");
+    return testS3();
+  });
+
+export const getPaySettings = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
+    const pay = await getSifaloPlatformConfig();
+    return {
+      gatewayUrl: pay.gatewayUrl,
+      verifyUrl: pay.verifyUrl,
+      checkoutPage: pay.checkoutPage,
+      apiKey: pay.apiKey,
+      hasPassword: Boolean(pay.apiPassword),
+      usePlatformCredentials: pay.usePlatformCredentials,
+    };
+  });
+
+export const savePaySettings = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: {
+    gatewayUrl: string;
+    verifyUrl: string;
+    checkoutPage: string;
+    apiKey: string;
+    apiPassword?: string;
+    usePlatformCredentials: boolean;
+  }) => ({
+    gatewayUrl: input.gatewayUrl.trim() || "https://api.sifalopay.com/gateway/",
+    verifyUrl: input.verifyUrl.trim() || "https://api.sifalopay.com/gateway/verify.php",
+    checkoutPage: input.checkoutPage.trim() || "https://pay.sifalo.com/checkout/",
+    apiKey: input.apiKey.trim(),
+    apiPassword: input.apiPassword?.trim() ?? "",
+    usePlatformCredentials: Boolean(input.usePlatformCredentials),
+  }))
+  .handler(async ({ data }) => {
+    const { writeSettings } = await import("@/lib/platform-settings");
+    const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
+    const current = await getSifaloPlatformConfig();
+    await writeSettings({
+      sifalo_gateway_url: data.gatewayUrl,
+      sifalo_verify_url: data.verifyUrl,
+      sifalo_checkout_page: data.checkoutPage,
+      sifalo_api_key: data.apiKey,
+      sifalo_api_password: data.apiPassword || current.apiPassword,
+      sifalo_use_platform: data.usePlatformCredentials ? "1" : "0",
+    });
+    return { ok: true as const };
+  });
+
+export const testPaySettings = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { getSifaloPlatformConfig, sifaloTestCredentials } = await import("@/lib/sifalo.server");
+    const pay = await getSifaloPlatformConfig();
+    if (!pay.apiKey || !pay.apiPassword) {
+      return { ok: false, message: "Save API username and password first." };
+    }
+    return sifaloTestCredentials(pay.apiKey, pay.apiPassword);
   });

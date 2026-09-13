@@ -3,6 +3,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { money } from "@/lib/utils";
 import { mapOrder, type OrderRow } from "./map";
+import { filesForPaidOrder } from "./files";
 
 export const listMyOrders = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -53,6 +54,7 @@ export const getPublicOrder = createServerFn({ method: "GET" })
     const products = await sql<{ delivery_url: string | null; delivery_note: string; slug: string }>`
       select delivery_url, delivery_note, slug from products where id = ${order.productId} limit 1
     `;
+    const files = order.status === "paid" ? await filesForPaidOrder(orderRef) : [];
     return {
       order,
       delivery:
@@ -60,6 +62,7 @@ export const getPublicOrder = createServerFn({ method: "GET" })
           ? {
               url: products[0]?.delivery_url ?? null,
               note: products[0]?.delivery_note ?? "",
+              files,
             }
           : null,
     };

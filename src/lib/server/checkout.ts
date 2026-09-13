@@ -6,6 +6,8 @@ import {
   sifaloCheckoutUrl,
   sifaloInitiateCheckout,
   sifaloVerify,
+  getSifaloPlatformConfig,
+  resolveSifaloMerchant,
 } from "@/lib/sifalo.server";
 
 function validEmail(value: string): boolean {
@@ -40,8 +42,8 @@ export const startCheckout = createServerFn({ method: "POST" })
     const orderRef = makeOrderRef();
     const amount = product.price;
     const isFree = product.kind === "link" || amount <= 0;
-    const hasCredentials = Boolean(shopRow.sifalo_api_key && shopRow.sifalo_api_password);
-    const demo = !hasCredentials && !isFree;
+    const merchant = await resolveSifaloMerchant(shopRow);
+    const demo = !merchant && !isFree;
 
     const inserted = await sql<OrderRow>`
       insert into orders (
@@ -64,13 +66,16 @@ export const startCheckout = createServerFn({ method: "POST" })
     if (demo) {
       return { mode: "demo" as const, orderRef, redirectUrl: `/pay/demo/${orderRef}` };
     }
+    if (!merchant) throw new Error("Sifalo Pay is not configured.");
 
     const returnUrl = `${data.origin.replace(/\/$/, "")}/pay/return?order_id=${encodeURIComponent(orderRef)}`;
+    const config = await getSifaloPlatformConfig();
     const session = await sifaloInitiateCheckout({
-      apiKey: shopRow.sifalo_api_key as string,
-      apiPassword: shopRow.sifalo_api_password as string,
+      apiKey: merchant.apiKey,
+      apiPassword: merchant.apiPassword,
       amount: money(amount).toFixed(2),
       returnUrl,
+      orderId: orderRef,
     });
     await sql`
       update orders set sifalo_key = ${session.key} where id = ${order.id}
@@ -78,7 +83,7 @@ export const startCheckout = createServerFn({ method: "POST" })
     return {
       mode: "sifalo" as const,
       orderRef,
-      redirectUrl: sifaloCheckoutUrl(session.key, session.token),
+      redirectUrl: sifaloCheckoutUrl(session.key, session.token, config.checkoutPage),
     };
   });
 

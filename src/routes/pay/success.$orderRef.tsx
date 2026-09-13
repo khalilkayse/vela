@@ -42,12 +42,23 @@ function PaySuccess() {
           {formatPrice(order.amount, order.currency)}
         </p>
       </Card>
-      {paid && delivery ? (
+      {paid && delivery && (delivery.note || delivery.url || delivery.files.length > 0) ? (
         <Card className="mt-4 p-5">
           <p className="text-xs uppercase tracking-[0.12em] text-muted">Delivery</p>
           {delivery.note ? <p className="mt-2 text-sm leading-relaxed text-fg">{delivery.note}</p> : null}
+          {delivery.files.length > 0 ? (
+            <ul className="mt-4 space-y-2">
+              {delivery.files.map((file) => (
+                <li key={file.url}>
+                  <Button asChild className="w-full">
+                    <a href={file.url}>Download {file.name}</a>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {delivery.url ? (
-            <Button asChild className="mt-4 w-full">
+            <Button asChild variant={delivery.files.length ? "secondary" : "primary"} className="mt-4 w-full">
               <a href={delivery.url} target="_blank" rel="noreferrer">
                 Open delivery
               </a>

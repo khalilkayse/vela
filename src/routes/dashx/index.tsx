@@ -29,6 +29,23 @@ function DashxHome() {
         <Stat label="All orders" value={stats ? String(stats.orders) : null} to="/dashx/orders" />
         <Stat label="Volume" value={stats ? formatPrice(stats.revenue) : null} />
       </div>
+      <div className="mt-10 grid gap-4 sm:grid-cols-3">
+        <SetupCard
+          to="/dashx/mail"
+          title="Email"
+          body="SMTP for confirmation, reset, and the shop welcome note."
+        />
+        <SetupCard
+          to="/dashx/storage"
+          title="Storage"
+          body="Private S3 or R2 bucket. Paid buyers get signed downloads."
+        />
+        <SetupCard
+          to="/dashx/payments"
+          title="Payments"
+          body="Sifalo Pay hosts and optional platform credentials."
+        />
+      </div>
     </AdminPage>
   );
 }
@@ -48,6 +65,17 @@ function Stat({ label, value, to }: { label: string; value: string | null; to?: 
   return (
     <Link to={to} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       {inner}
+    </Link>
+  );
+}
+
+function SetupCard({ to, title, body }: { to: string; title: string; body: string }) {
+  return (
+    <Link to={to} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Card className="h-full p-5">
+        <p className="text-sm font-semibold text-fg">{title}</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
+      </Card>
     </Link>
   );
 }

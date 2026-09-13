@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { CoverPicker } from "@/components/product-cover";
+import { ProductFiles } from "@/components/product-files";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/skeleton";
@@ -136,6 +137,13 @@ export function ProductForm({ product }: { product?: Product }) {
             placeholder="https://"
           />
         </Field>
+        {product ? (
+          <ProductFiles productId={product.id} />
+        ) : (
+          <p className="text-xs leading-relaxed text-muted">
+            Save the product first, then you can attach private delivery files.
+          </p>
+        )}
       </div>
 
       <aside className="space-y-5">

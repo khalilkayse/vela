@@ -52,6 +52,26 @@ export const LAYOUTS = [
 
 export type ShopLayout = (typeof LAYOUTS)[number]["id"];
 
+/** Hosts from https://developer.sifalopay.com — live keys only work on .com. */
+export type SifaloHosts = {
+  gatewayUrl: string;
+  verifyUrl: string;
+  checkoutPage: string;
+};
+
+export const SIFALO_PRESETS: Record<"production" | "staging", SifaloHosts> = {
+  production: {
+    gatewayUrl: "https://api.sifalopay.com/gateway/",
+    verifyUrl: "https://api.sifalopay.com/gateway/verify.php",
+    checkoutPage: "https://pay.sifalo.com/checkout/",
+  },
+  staging: {
+    gatewayUrl: "https://spay-api.sifalo.net/gateway/",
+    verifyUrl: "https://spay-api.sifalo.net/gateway/verify.php",
+    checkoutPage: "https://pay.sifalo.net/checkout/",
+  },
+};
+
 export const COVER_STYLES = [
   "mesh-1",
   "mesh-2",

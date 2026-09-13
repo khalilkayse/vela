@@ -26,14 +26,18 @@ import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settin
 import { Route as DashxIndexRouteImport } from './routes/dashx/index'
 import { Route as DashxMailRouteImport } from './routes/dashx/mail'
 import { Route as DashxOrdersRouteImport } from './routes/dashx/orders'
+import { Route as DashxPaymentsRouteImport } from './routes/dashx/payments'
 import { Route as DashxShopsRouteImport } from './routes/dashx/shops'
+import { Route as DashxStorageRouteImport } from './routes/dashx/storage'
 import { Route as DashxUsersRouteImport } from './routes/dashx/users'
 import { Route as PayReturnRouteImport } from './routes/pay/return'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiFilesUploadRouteImport } from './routes/api/files/upload'
 import { Route as DashboardProductsIdRouteImport } from './routes/dashboard/products.$id'
 import { Route as DashboardProductsNewRouteImport } from './routes/dashboard/products.new'
 import { Route as PayDemoOrderRefRouteImport } from './routes/pay/demo.$orderRef'
 import { Route as PaySuccessOrderRefRouteImport } from './routes/pay/success.$orderRef'
+import { Route as ApiFilesDTokenRouteImport } from './routes/api/files/d.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -120,9 +124,19 @@ const DashxOrdersRoute = DashxOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => DashxRoute,
 } as any)
+const DashxPaymentsRoute = DashxPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => DashxRoute,
+} as any)
 const DashxShopsRoute = DashxShopsRouteImport.update({
   id: '/shops',
   path: '/shops',
+  getParentRoute: () => DashxRoute,
+} as any)
+const DashxStorageRoute = DashxStorageRouteImport.update({
+  id: '/storage',
+  path: '/storage',
   getParentRoute: () => DashxRoute,
 } as any)
 const DashxUsersRoute = DashxUsersRouteImport.update({
@@ -138,6 +152,11 @@ const PayReturnRoute = PayReturnRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesUploadRoute = ApiFilesUploadRouteImport.update({
+  id: '/api/files/upload',
+  path: '/api/files/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardProductsIdRoute = DashboardProductsIdRouteImport.update({
@@ -160,6 +179,11 @@ const PaySuccessOrderRefRoute = PaySuccessOrderRefRouteImport.update({
   path: '/pay/success/$orderRef',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFilesDTokenRoute = ApiFilesDTokenRouteImport.update({
+  id: '/api/files/d/$token',
+  path: '/api/files/d/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -176,17 +200,21 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/payments': typeof DashxPaymentsRoute
   '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username/': typeof UsernameIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/api/files/d/$token': typeof ApiFilesDTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -200,17 +228,21 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/payments': typeof DashxPaymentsRoute
   '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username': typeof UsernameIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashx': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/api/files/d/$token': typeof ApiFilesDTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -228,17 +260,21 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/payments': typeof DashxPaymentsRoute
   '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username/': typeof UsernameIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
+  '/api/files/d/$token': typeof ApiFilesDTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -257,17 +293,21 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashx/mail'
     | '/dashx/orders'
+    | '/dashx/payments'
     | '/dashx/shops'
+    | '/dashx/storage'
     | '/dashx/users'
     | '/pay/return'
     | '/$username/'
     | '/dashboard/'
     | '/dashx/'
     | '/api/auth/$'
+    | '/api/files/upload'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/api/files/d/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -281,17 +321,21 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashx/mail'
     | '/dashx/orders'
+    | '/dashx/payments'
     | '/dashx/shops'
+    | '/dashx/storage'
     | '/dashx/users'
     | '/pay/return'
     | '/$username'
     | '/dashboard'
     | '/dashx'
     | '/api/auth/$'
+    | '/api/files/upload'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/api/files/d/$token'
   id:
     | '__root__'
     | '/'
@@ -308,17 +352,21 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashx/mail'
     | '/dashx/orders'
+    | '/dashx/payments'
     | '/dashx/shops'
+    | '/dashx/storage'
     | '/dashx/users'
     | '/pay/return'
     | '/$username/'
     | '/dashboard/'
     | '/dashx/'
     | '/api/auth/$'
+    | '/api/files/upload'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
+    | '/api/files/d/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -331,8 +379,10 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PayReturnRoute: typeof PayReturnRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiFilesUploadRoute: typeof ApiFilesUploadRoute
   PayDemoOrderRefRoute: typeof PayDemoOrderRefRoute
   PaySuccessOrderRefRoute: typeof PaySuccessOrderRefRoute
+  ApiFilesDTokenRoute: typeof ApiFilesDTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -456,11 +506,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashxOrdersRouteImport
       parentRoute: typeof DashxRoute
     }
+    '/dashx/payments': {
+      id: '/dashx/payments'
+      path: '/payments'
+      fullPath: '/dashx/payments'
+      preLoaderRoute: typeof DashxPaymentsRouteImport
+      parentRoute: typeof DashxRoute
+    }
     '/dashx/shops': {
       id: '/dashx/shops'
       path: '/shops'
       fullPath: '/dashx/shops'
       preLoaderRoute: typeof DashxShopsRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/storage': {
+      id: '/dashx/storage'
+      path: '/storage'
+      fullPath: '/dashx/storage'
+      preLoaderRoute: typeof DashxStorageRouteImport
       parentRoute: typeof DashxRoute
     }
     '/dashx/users': {
@@ -482,6 +546,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files/upload': {
+      id: '/api/files/upload'
+      path: '/api/files/upload'
+      fullPath: '/api/files/upload'
+      preLoaderRoute: typeof ApiFilesUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/products/$id': {
@@ -510,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/pay/success/$orderRef'
       fullPath: '/pay/success/$orderRef'
       preLoaderRoute: typeof PaySuccessOrderRefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files/d/$token': {
+      id: '/api/files/d/$token'
+      path: '/api/files/d/$token'
+      fullPath: '/api/files/d/$token'
+      preLoaderRoute: typeof ApiFilesDTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -565,7 +643,9 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 interface DashxRouteChildren {
   DashxMailRoute: typeof DashxMailRoute
   DashxOrdersRoute: typeof DashxOrdersRoute
+  DashxPaymentsRoute: typeof DashxPaymentsRoute
   DashxShopsRoute: typeof DashxShopsRoute
+  DashxStorageRoute: typeof DashxStorageRoute
   DashxUsersRoute: typeof DashxUsersRoute
   DashxIndexRoute: typeof DashxIndexRoute
 }
@@ -573,7 +653,9 @@ interface DashxRouteChildren {
 const DashxRouteChildren: DashxRouteChildren = {
   DashxMailRoute: DashxMailRoute,
   DashxOrdersRoute: DashxOrdersRoute,
+  DashxPaymentsRoute: DashxPaymentsRoute,
   DashxShopsRoute: DashxShopsRoute,
+  DashxStorageRoute: DashxStorageRoute,
   DashxUsersRoute: DashxUsersRoute,
   DashxIndexRoute: DashxIndexRoute,
 }
@@ -590,8 +672,10 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PayReturnRoute: PayReturnRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiFilesUploadRoute: ApiFilesUploadRoute,
   PayDemoOrderRefRoute: PayDemoOrderRefRoute,
   PaySuccessOrderRefRoute: PaySuccessOrderRefRoute,
+  ApiFilesDTokenRoute: ApiFilesDTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
