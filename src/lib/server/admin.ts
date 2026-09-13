@@ -556,3 +556,23 @@ export const testPaySettings = createServerFn({ method: "POST" })
     }
     return sifaloTestCredentials(pay.apiKey, pay.apiPassword);
   });
+
+export const getReservedUsernames = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { extraReservedUsernames } = await import("@/lib/server/usernames");
+    const { RESERVED_USERNAMES } = await import("@/lib/constants");
+    return {
+      locked: [...RESERVED_USERNAMES].sort(),
+      extra: await extraReservedUsernames(),
+    };
+  });
+
+export const saveReservedUsernames = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { extra: string[] }) => ({ extra: input.extra ?? [] }))
+  .handler(async ({ data }) => {
+    const { saveExtraReservedUsernames } = await import("@/lib/server/usernames");
+    const extra = await saveExtraReservedUsernames(data.extra);
+    return { ok: true as const, extra };
+  });

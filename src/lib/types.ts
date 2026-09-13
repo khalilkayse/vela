@@ -8,6 +8,8 @@ export type Shop = {
   tagline: string;
   bio: string;
   avatarInitials: string;
+  avatarFileId: number | null;
+  avatarUrl: string | null;
   coverStyle: string;
   layout: ShopLayout;
   websiteUrl: string | null;
@@ -15,12 +17,20 @@ export type Shop = {
   xUrl: string | null;
   youtubeUrl: string | null;
   tiktokUrl: string | null;
+  terms: string;
+  contactEmail: string | null;
   sifaloConnected: boolean;
   hasSifaloCredentials: boolean;
   allowOwnSifalo: boolean;
+  checkoutLive: boolean;
   country: string | null;
   published: boolean;
   createdAt: string;
+};
+
+export type ProductImage = {
+  id: number;
+  url: string;
 };
 
 export type Product = {
@@ -34,6 +44,9 @@ export type Product = {
   price: number;
   currency: string;
   coverStyle: CoverStyle | string;
+  coverFileId: number | null;
+  coverUrl: string | null;
+  gallery: ProductImage[];
   buttonLabel: string;
   deliveryNote: string;
   deliveryUrl: string | null;
@@ -69,6 +82,9 @@ export type Order = {
   sifaloSid: string | null;
   paymentType: string | null;
   demo: boolean;
+  fulfilled: boolean;
+  fulfilledAt: string | null;
+  fulfillmentNote: string;
   createdAt: string;
   paidAt: string | null;
 };

@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, CreditCard, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -142,23 +142,12 @@ function Home() {
                 Create an account, pick a username, and publish. Connect Sifalo Pay when you
                 want live checkout — demo flow works until then.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8">
                 <Button asChild size="lg" variant="secondary" className="bg-surface text-fg hover:bg-paper">
                   <Link to="/login" search={{ next: "/onboarding" }}>
                     Start selling
                     <ArrowRight />
                   </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="ghost"
-                  className="text-primary-fg hover:bg-primary-hover"
-                >
-                  <a href="https://developer.sifalopay.com/docs/hosted-checkout" target="_blank" rel="noreferrer">
-                    <CreditCard />
-                    Sifalo Pay docs
-                  </a>
                 </Button>
               </div>
             </div>

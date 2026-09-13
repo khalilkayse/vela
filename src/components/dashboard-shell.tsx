@@ -219,9 +219,13 @@ function NavLink({
 function ShopBadge({ shop }: { shop: Shop }) {
   return (
     <div className="mx-3 mb-1 flex items-center gap-3 rounded-lg bg-bg px-3 py-3">
-      <span className="grid size-9 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-fg">
-        {shop.avatarInitials}
-      </span>
+      {shop.avatarUrl ? (
+        <img src={shop.avatarUrl} alt="" className="size-9 rounded-lg object-cover" />
+      ) : (
+        <span className="grid size-9 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-fg">
+          {shop.avatarInitials}
+        </span>
+      )}
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-fg">{shop.displayName}</p>
         <p className="truncate text-xs text-muted">/{shop.username}</p>

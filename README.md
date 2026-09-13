@@ -9,27 +9,27 @@ If you are a coding agent contributing to this repo, start with [CONTRIBUTING.md
 ## What it does
 
 - **Shop, Studio, or Page layouts** — a catalog of covers and prices, a profile with links then products, or a single column of buttons.
-- **Products, services, and free links** — each with a cover, price, and delivery note unlocked after payment.
+- **Products, services, and free links** — title, thumbnail, gallery, description, price, and a delivery note unlocked after payment.
 - **Private file delivery** — merchants upload files to a platform S3/R2 bucket. Only a paid order can mint a short signed download.
-- **Sifalo Pay checkout** — hosted checkout with Basic Auth. Endpoints and optional platform credentials are set in `/dashx`. Individual shops can be granted their own keys even while the platform collects for everyone else.
+- **Sifalo Pay checkout** — buyers pay on Sifalo Pay. Merchants get API username and password from [sifalopay.com](https://sifalopay.com). Endpoints and optional platform credentials are set in `/dashx`. Individual shops can be granted their own keys even while the platform collects for everyone else.
 - **Country-aware accounts** — signup country and last login are recorded (Cloudflare `CF-IPCountry` and similar headers). New shops inherit that country. `/dashx/access` can block sign-ups from selected countries.
 - **Social login** — Google, GitHub, X, Discord, Facebook, Apple, Microsoft. A button is shown **only** when that provider’s env vars are set. Otherwise email/password only.
 - **Demo checkout** — if nobody has connected Sifalo Pay yet, buyers can still walk the success and delivery flow without a real charge.
 - **Discover** — public shops listed for browsing.
-- **Unique usernames** — every shop is `yoursite.com/username`. Reserved words include `dashx`, `dashboard`, `login`, `pay`, `kart`.
+- **Unique usernames** — every shop is `yoursite.com/username`. Reserved names (routes plus extras you add in `/dashx/access`) cannot be claimed. The shop form only says the username is not available.
 
 Try the seeded studio at `/maya`.
 
 ## Sifalo Pay flow
 
-Docs: [developer.sifalopay.com/docs/hosted-checkout](https://developer.sifalopay.com/docs/hosted-checkout).
+Merchants copy their API username and password from [sifalopay.com](https://sifalopay.com) (or the platform collects with its own keys).
 
 1. Buyer submits name and email on a product page.
 2. Kart `POST`s the **gateway** with HTTP Basic Auth (`API username:API password`) and `{ amount, gateway: "checkout", currency: "USD", return_url, order_id }`.
 3. Buyer is redirected to the **checkout page** `?key=&token=`.
 4. Sifalo Pay returns them to `/pay/return?order_id=…&sid=…`.
 5. Kart `POST`s the **verify** URL with `{ sid }` (no Basic Auth). Success is `status: "success"` or `code: 601`.
-6. Paid orders unlock the delivery note, optional URL, and any private files.
+6. Paid orders unlock the delivery note, optional URL, and any private files. Receipts email when SMTP is set.
 
 Default **production** hosts (live keys only):
 

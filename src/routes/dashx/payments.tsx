@@ -88,22 +88,17 @@ function DashxPayments() {
     >
       <Card className="mb-6 space-y-3 p-5">
         <p className="text-sm leading-relaxed text-muted">
-          Flow from{" "}
+          Hosted checkout: Kart posts the gateway with the merchant API username and password, then
+          sends the buyer to Sifalo Pay. Get platform keys at{" "}
           <a
             className="font-medium text-fg underline-offset-4 hover:underline"
-            href="https://developer.sifalopay.com/docs/hosted-checkout"
+            href="https://sifalopay.com"
             target="_blank"
             rel="noreferrer"
           >
-            developer.sifalopay.com
+            sifalopay.com
           </a>
-          : POST the gateway with Basic Auth → redirect to the checkout page with{" "}
-          <code className="rounded bg-bg px-1.5 py-0.5 text-xs text-fg">key</code> and{" "}
-          <code className="rounded bg-bg px-1.5 py-0.5 text-xs text-fg">token</code> → buyer returns
-          with <code className="rounded bg-bg px-1.5 py-0.5 text-xs text-fg">sid</code> → POST verify
-          (no auth). Success is <code className="rounded bg-bg px-1.5 py-0.5 text-xs text-fg">status: success</code>{" "}
-          or <code className="rounded bg-bg px-1.5 py-0.5 text-xs text-fg">code: 601</code>. Live
-          keys only work on .com hosts; staging keys only on .net.
+          . Live keys only work on .com hosts; staging keys only on .net.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => applyPreset("production")}>

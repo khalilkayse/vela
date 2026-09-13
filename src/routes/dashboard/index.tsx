@@ -83,12 +83,12 @@ function DashboardHome() {
         </div>
       </Card>
 
-      {!shop.hasSifaloCredentials ? (
+      {!shop.checkoutLive ? (
         <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-semibold text-fg">Connect Sifalo Pay</p>
             <p className="mt-1 text-sm text-muted">
-              Checkout stays in demo until you add your API username and password.
+              Checkout stays in demo until you add your API username and password from sifalopay.com.
             </p>
           </div>
           <Button asChild>
@@ -105,8 +105,12 @@ function DashboardHome() {
               <CreditCard className="size-4" />
             </span>
             <div>
-              <p className="font-semibold text-fg">Sifalo Pay connected</p>
-              <p className="text-sm text-muted">Live checkout uses your merchant credentials.</p>
+              <p className="font-semibold text-fg">Live checkout</p>
+              <p className="text-sm text-muted">
+                {shop.hasSifaloCredentials
+                  ? "Buyers pay through your Sifalo Pay account."
+                  : "Buyers pay through the platform Sifalo Pay account."}
+              </p>
             </div>
           </div>
           <Badge tone="success">Live</Badge>

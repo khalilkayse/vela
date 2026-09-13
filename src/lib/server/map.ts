@@ -1,5 +1,6 @@
-import type { Order, PageBlock, Product, Shop } from "@/lib/types";
+import type { Order, PageBlock, Product, ProductImage, Shop } from "@/lib/types";
 import { money, toIso } from "@/lib/utils";
+import { publicMediaPath } from "@/lib/upload";
 import type { ProductKind, ShopLayout } from "@/lib/constants";
 
 export type ShopRow = {
@@ -10,6 +11,7 @@ export type ShopRow = {
   tagline: string;
   bio: string;
   avatar_initials: string;
+  avatar_file_id?: number | null;
   cover_style: string;
   layout: string;
   website_url: string | null;
@@ -17,6 +19,8 @@ export type ShopRow = {
   x_url: string | null;
   youtube_url: string | null;
   tiktok_url: string | null;
+  terms?: string | null;
+  contact_email?: string | null;
   sifalo_api_key: string | null;
   sifalo_api_password: string | null;
   sifalo_connected: boolean;
@@ -37,6 +41,7 @@ export type ProductRow = {
   price: unknown;
   currency: string;
   cover_style: string;
+  cover_file_id?: number | null;
   button_label: string;
   delivery_note: string;
   delivery_url: string | null;
@@ -72,6 +77,9 @@ export type OrderRow = {
   sifalo_sid: string | null;
   payment_type: string | null;
   demo: boolean;
+  fulfilled?: boolean | null;
+  fulfilled_at?: unknown;
+  fulfillment_note?: string | null;
   created_at: unknown;
   paid_at: unknown;
 };
@@ -86,7 +94,8 @@ function asKind(value: string): ProductKind {
   return "digital";
 }
 
-export function mapShop(row: ShopRow): Shop {
+export function mapShop(row: ShopRow, extras?: { checkoutLive?: boolean }): Shop {
+  const avatarFileId = row.avatar_file_id ?? null;
   return {
     id: row.id,
     userId: row.user_id,
@@ -95,6 +104,8 @@ export function mapShop(row: ShopRow): Shop {
     tagline: row.tagline ?? "",
     bio: row.bio ?? "",
     avatarInitials: row.avatar_initials || "K",
+    avatarFileId,
+    avatarUrl: avatarFileId ? publicMediaPath(avatarFileId) : null,
     coverStyle: row.cover_style,
     layout: asLayout(row.layout),
     websiteUrl: row.website_url,
@@ -102,16 +113,20 @@ export function mapShop(row: ShopRow): Shop {
     xUrl: row.x_url,
     youtubeUrl: row.youtube_url,
     tiktokUrl: row.tiktok_url,
+    terms: row.terms ?? "",
+    contactEmail: row.contact_email ?? null,
     sifaloConnected: Boolean(row.sifalo_connected),
     hasSifaloCredentials: Boolean(row.sifalo_api_key && row.sifalo_api_password),
     allowOwnSifalo: Boolean(row.allow_own_sifalo),
+    checkoutLive: Boolean(extras?.checkoutLive),
     country: row.country ?? null,
     published: Boolean(row.published),
     createdAt: toIso(row.created_at),
   };
 }
 
-export function mapProduct(row: ProductRow): Product {
+export function mapProduct(row: ProductRow, extras?: { gallery?: ProductImage[] }): Product {
+  const coverFileId = row.cover_file_id ?? null;
   return {
     id: row.id,
     shopId: row.shop_id,
@@ -123,6 +138,9 @@ export function mapProduct(row: ProductRow): Product {
     price: money(row.price),
     currency: row.currency || "USD",
     coverStyle: row.cover_style,
+    coverFileId,
+    coverUrl: coverFileId ? publicMediaPath(coverFileId) : null,
+    gallery: extras?.gallery ?? [],
     buttonLabel: row.button_label || "Buy now",
     deliveryNote: row.delivery_note ?? "",
     deliveryUrl: row.delivery_url,
@@ -166,7 +184,16 @@ export function mapOrder(row: OrderRow): Order {
     sifaloSid: row.sifalo_sid,
     paymentType: row.payment_type,
     demo: Boolean(row.demo),
+    fulfilled: Boolean(row.fulfilled),
+    fulfilledAt: row.fulfilled_at ? toIso(row.fulfilled_at) : null,
+    fulfillmentNote: row.fulfillment_note ?? "",
     createdAt: toIso(row.created_at),
     paidAt: row.paid_at ? toIso(row.paid_at) : null,
   };
+}
+
+export async function decorateShop(row: ShopRow): Promise<Shop> {
+  const { resolveSifaloMerchant } = await import("@/lib/sifalo.server");
+  const merchant = await resolveSifaloMerchant(row);
+  return mapShop(row, { checkoutLive: Boolean(merchant) });
 }

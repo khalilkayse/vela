@@ -43,8 +43,25 @@ function ProductPage() {
             {shop.displayName}
           </Link>
           <div className="mt-6 overflow-hidden rounded-xl border border-border shadow-soft">
-            <ProductCover style={product.coverStyle} title={product.title} className="aspect-[16/10]" />
+            <ProductCover
+              style={product.coverStyle}
+              imageUrl={product.coverUrl}
+              title={product.title}
+              className="aspect-[16/10]"
+            />
           </div>
+          {product.gallery.length > 0 ? (
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {product.gallery.map((image) => (
+                <img
+                  key={image.id}
+                  src={image.url}
+                  alt=""
+                  className="aspect-square w-full rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <Badge tone="primary">

@@ -98,6 +98,17 @@ export async function deleteObject(key: string): Promise<void> {
   await client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
 }
 
+export async function getObjectBytes(
+  key: string,
+): Promise<{ body: Uint8Array; contentType: string } | null> {
+  const config = await getS3Config();
+  if (!config) return null;
+  const res = await client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: key }));
+  if (!res.Body) return null;
+  const body = await res.Body.transformToByteArray();
+  return { body, contentType: res.ContentType || "application/octet-stream" };
+}
+
 /** Short-lived signed GET. Never expose the raw key to unpaid visitors. */
 export async function signedGetUrl(key: string, filename: string, seconds = 90): Promise<string> {
   const config = await getS3Config();
@@ -119,7 +130,13 @@ export function publicObjectUrl(key: string, config: S3Config): string | null {
   return `${config.cdnBase}/${key.replace(/^\/+/, "")}`;
 }
 
-export function objectKey(shopId: number, productId: number, fileId: string, filename: string): string {
+export function objectKey(
+  shopId: number,
+  productId: number | null,
+  fileId: string,
+  filename: string,
+): string {
   const safe = filename.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "file";
+  if (!productId) return `shops/${shopId}/media/${fileId}/${safe}`;
   return `shops/${shopId}/products/${productId}/${fileId}/${safe}`;
 }

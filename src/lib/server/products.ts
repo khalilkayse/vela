@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { slugify } from "@/lib/utils";
-import { mapProduct, type ProductRow, type ShopRow } from "./map";
+import { publicMediaPath } from "@/lib/upload";
+import { decorateShop, mapProduct, type ProductRow, type ShopRow } from "./map";
 
 async function requireShop(userId: string) {
   const sql = await getSql();
@@ -16,6 +17,15 @@ function parseKind(value: unknown): "digital" | "service" | "link" {
   return "digital";
 }
 
+async function galleryFor(productId: number) {
+  const sql = await getSql();
+  const rows = await sql.query<{ id: number }>(
+    `select id from product_files where product_id = $1 and kind = 'gallery' order by id asc`,
+    [productId],
+  );
+  return rows.map((row) => ({ id: row.id, url: publicMediaPath(row.id) }));
+}
+
 export const listMyProducts = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
@@ -24,7 +34,7 @@ export const listMyProducts = createServerFn({ method: "GET" })
       select * from products where user_id = ${context.userId}
       order by sort_order asc, id desc
     `;
-    return rows.map(mapProduct);
+    return Promise.all(rows.map(async (row) => mapProduct(row, { gallery: await galleryFor(row.id) })));
   });
 
 export const getMyProduct = createServerFn({ method: "GET" })
@@ -35,7 +45,8 @@ export const getMyProduct = createServerFn({ method: "GET" })
     const rows = await sql<ProductRow>`
       select * from products where id = ${id} and user_id = ${context.userId} limit 1
     `;
-    return rows[0] ? mapProduct(rows[0]) : null;
+    if (!rows[0]) return null;
+    return mapProduct(rows[0], { gallery: await galleryFor(rows[0].id) });
   });
 
 export const getPublicProduct = createServerFn({ method: "GET" })
@@ -56,8 +67,8 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     `;
     if (!products[0]) return null;
     return {
-      shop: (await import("./map")).mapShop(shops[0]),
-      product: mapProduct(products[0]),
+      shop: await decorateShop(shops[0]),
+      product: mapProduct(products[0], { gallery: await galleryFor(products[0].id) }),
     };
   });
 
@@ -86,12 +97,12 @@ export const upsertProduct = createServerFn({ method: "POST" })
     return {
       id: input.id,
       title: title.slice(0, 80),
-      description: (input.description ?? "").trim().slice(0, 2000),
+      description: (input.description ?? "").trim().slice(0, 4000),
       kind,
       price: kind === "link" ? 0 : Number(price.toFixed(2)),
       coverStyle: (input.coverStyle ?? "mesh-1").slice(0, 24),
       buttonLabel: (input.buttonLabel ?? (kind === "link" ? "Open" : "Buy now")).trim().slice(0, 32),
-      deliveryNote: (input.deliveryNote ?? "").trim().slice(0, 400),
+      deliveryNote: (input.deliveryNote ?? "").trim().slice(0, 2000),
       deliveryUrl: (input.deliveryUrl ?? "").trim().slice(0, 500) || null,
       published: input.published !== false,
       featured: Boolean(input.featured),
@@ -132,7 +143,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
         returning *
       `;
       if (!rows[0]) throw new Error("Product not found.");
-      return mapProduct(rows[0]);
+      return mapProduct(rows[0], { gallery: await galleryFor(rows[0].id) });
     }
 
     const count = await sql<{ n: number }>`
@@ -150,7 +161,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
       )
       returning *
     `;
-    return mapProduct(rows[0]);
+    return mapProduct(rows[0], { gallery: [] });
   });
 
 export const deleteProduct = createServerFn({ method: "POST" })
@@ -160,4 +171,18 @@ export const deleteProduct = createServerFn({ method: "POST" })
     const sql = await getSql();
     await sql`delete from products where id = ${id} and user_id = ${context.userId}`;
     return { ok: true };
+  });
+
+export const reorderProducts = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((ids: number[]) => ids.map((id) => Number(id)).filter((id) => Number.isFinite(id)))
+  .handler(async ({ context, data: ids }) => {
+    const sql = await getSql();
+    for (let i = 0; i < ids.length; i += 1) {
+      await sql`
+        update products set sort_order = ${i}, updated_at = now()
+        where id = ${ids[i]} and user_id = ${context.userId}
+      `;
+    }
+    return { ok: true as const };
   });

@@ -39,6 +39,7 @@ import { Route as DashboardProductsNewRouteImport } from './routes/dashboard/pro
 import { Route as PayDemoOrderRefRouteImport } from './routes/pay/demo.$orderRef'
 import { Route as PaySuccessOrderRefRouteImport } from './routes/pay/success.$orderRef'
 import { Route as ApiFilesDTokenRouteImport } from './routes/api/files/d.$token'
+import { Route as ApiFilesPublicIdRouteImport } from './routes/api/files/public.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -190,6 +191,11 @@ const ApiFilesDTokenRoute = ApiFilesDTokenRouteImport.update({
   path: '/api/files/d/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFilesPublicIdRoute = ApiFilesPublicIdRouteImport.update({
+  id: '/api/files/public/$id',
+  path: '/api/files/public/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
+  '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
+  '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/api/files/d/$token': typeof ApiFilesDTokenRoute
+  '/api/files/public/$id': typeof ApiFilesPublicIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/api/files/d/$token'
+    | '/api/files/public/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/api/files/d/$token'
+    | '/api/files/public/$id'
   id:
     | '__root__'
     | '/'
@@ -379,6 +390,7 @@ export interface FileRouteTypes {
     | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/api/files/d/$token'
+    | '/api/files/public/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -395,6 +407,7 @@ export interface RootRouteChildren {
   PayDemoOrderRefRoute: typeof PayDemoOrderRefRoute
   PaySuccessOrderRefRoute: typeof PaySuccessOrderRefRoute
   ApiFilesDTokenRoute: typeof ApiFilesDTokenRoute
+  ApiFilesPublicIdRoute: typeof ApiFilesPublicIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -609,6 +622,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFilesDTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/files/public/$id': {
+      id: '/api/files/public/$id'
+      path: '/api/files/public/$id'
+      fullPath: '/api/files/public/$id'
+      preLoaderRoute: typeof ApiFilesPublicIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -697,6 +717,7 @@ const rootRouteChildren: RootRouteChildren = {
   PayDemoOrderRefRoute: PayDemoOrderRefRoute,
   PaySuccessOrderRefRoute: PaySuccessOrderRefRoute,
   ApiFilesDTokenRoute: ApiFilesDTokenRoute,
+  ApiFilesPublicIdRoute: ApiFilesPublicIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

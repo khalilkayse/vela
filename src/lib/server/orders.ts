@@ -42,6 +42,26 @@ export const getDashboardStats = createServerFn({ method: "GET" })
     };
   });
 
+export const fulfillOrder = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: { orderId: number; note?: string }) => ({
+    orderId: Number(input.orderId),
+    note: (input.note ?? "").trim().slice(0, 1000),
+  }))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<OrderRow>`
+      update orders set
+        fulfilled = true,
+        fulfilled_at = coalesce(fulfilled_at, now()),
+        fulfillment_note = ${data.note}
+      where id = ${data.orderId} and user_id = ${context.userId} and status = 'paid'
+      returning *
+    `;
+    if (!rows[0]) throw new Error("Paid order not found.");
+    return mapOrder(rows[0]);
+  });
+
 export const getPublicOrder = createServerFn({ method: "GET" })
   .validator((orderRef: string) => orderRef.trim())
   .handler(async ({ data: orderRef }) => {

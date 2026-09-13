@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { APP_PITCH, LAYOUTS, type ShopLayout } from "@/lib/constants";
 import { errMsg } from "@/lib/errors";
-import { createShop, getMyShop, usernameAvailable } from "@/lib/server/shops";
+import { createShop, getMyShop } from "@/lib/server/shops";
+import { UsernameField } from "@/components/username-field";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
@@ -22,7 +23,6 @@ function Onboarding() {
   const [layout, setLayout] = useState<ShopLayout>("hybrid");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [availability, setAvailability] = useState<{ ok: boolean; reason: string } | null>(null);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
@@ -33,20 +33,6 @@ function Onboarding() {
       })
       .catch(() => undefined);
   }, [user, navigate]);
-
-  useEffect(() => {
-    const value = username.trim().toLowerCase();
-    if (value.length < 3) {
-      setAvailability(null);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      usernameAvailable({ data: value })
-        .then((result) => setAvailability(result))
-        .catch(() => setAvailability(null));
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [username]);
 
   if (isPending) {
     return <div className="min-h-screen bg-bg" />;
@@ -87,23 +73,7 @@ function Onboarding() {
               placeholder="Maya Atelier"
             />
           </Field>
-          <Field label="Username" hint="3 to 24 letters, numbers, or hyphens. This is the shareable link.">
-            <div className="flex overflow-hidden rounded-md border border-border bg-surface focus-within:ring-2 focus-within:ring-ring/40">
-              <span className="grid place-items-center bg-bg px-3 text-sm text-muted">/</span>
-              <input
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                className="h-11 flex-1 bg-transparent px-3 text-sm text-fg outline-none"
-                placeholder="maya"
-              />
-            </div>
-            {availability ? (
-              <p className={cn("mt-1.5 text-xs", availability.ok ? "text-success" : "text-danger")}>
-                {availability.ok ? `${origin}/${username} is available.` : availability.reason}
-              </p>
-            ) : null}
-          </Field>
+          <UsernameField value={username} onChange={setUsername} origin={origin} />
           <Field label="Tagline">
             <Input
               value={tagline}

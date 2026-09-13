@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/utils";
 export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [accepted, setAccepted] = useState(!shop.terms);
   const [busy, setBusy] = useState(false);
   const isFree = product.kind === "link" || product.price <= 0;
 
@@ -23,6 +24,7 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
           name,
           email,
           origin: window.location.origin,
+          acceptedTerms: accepted,
         },
       });
       window.location.href = result.redirectUrl;
@@ -53,6 +55,24 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
           placeholder="you@studio.com"
         />
       </Field>
+      {shop.terms ? (
+        <label className="flex items-start gap-3 text-sm text-fg">
+          <input
+            type="checkbox"
+            className="mt-0.5 size-4 accent-primary"
+            checked={accepted}
+            onChange={(e) => setAccepted(e.target.checked)}
+            required
+          />
+          <span>
+            I agree to the store terms.
+            <details className="mt-2 text-xs leading-relaxed text-muted">
+              <summary className="cursor-pointer font-medium text-fg">Read terms</summary>
+              <p className="mt-2 whitespace-pre-wrap">{shop.terms}</p>
+            </details>
+          </span>
+        </label>
+      ) : null}
       <Button type="submit" className="w-full" size="lg" disabled={busy}>
         {busy
           ? "Preparing checkout…"
@@ -63,7 +83,7 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
       <p className="text-center text-xs leading-relaxed text-muted">
         {isFree
           ? "No payment required."
-          : shop.hasSifaloCredentials
+          : shop.checkoutLive
             ? `You will complete payment on Sifalo Pay. Funds go to ${shop.displayName}.`
             : "This shop has not connected Sifalo Pay yet. Checkout will run in demo mode so you can preview the flow."}
       </p>

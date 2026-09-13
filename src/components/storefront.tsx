@@ -46,14 +46,23 @@ export function Storefront({
   const catalog = [...featured, ...rest];
   const isLinks = shop.layout === "links";
   const isShop = shop.layout === "shop";
+  const isStudio = shop.layout === "hybrid";
 
   return (
     <div className="min-h-screen bg-bg">
       <div className={cn("mx-auto px-4 pb-20 pt-10", isLinks ? "max-w-md" : "max-w-3xl sm:px-6")}>
-        <header className={cn("flex flex-col", isLinks || !isShop ? "items-center text-center" : "items-start")}>
-          <span className="grid size-20 place-items-center rounded-2xl bg-primary font-display text-2xl font-bold text-primary-fg">
-            {shop.avatarInitials}
-          </span>
+        <header className={cn("flex flex-col", isLinks || isStudio ? "items-center text-center" : "items-start")}>
+          {shop.avatarUrl ? (
+            <img
+              src={shop.avatarUrl}
+              alt=""
+              className="size-20 rounded-2xl object-cover ring-2 ring-border"
+            />
+          ) : (
+            <span className="grid size-20 place-items-center rounded-2xl bg-primary font-display text-2xl font-bold text-primary-fg">
+              {shop.avatarInitials}
+            </span>
+          )}
           <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-fg">{shop.displayName}</h1>
           {shop.tagline ? (
             <p className="mt-2 max-w-md text-base leading-relaxed text-muted">{shop.tagline}</p>
@@ -69,7 +78,7 @@ export function Storefront({
           <Socials shop={shop} className="mt-5" />
         </header>
 
-        {blocks.length > 0 && shop.layout !== "shop" ? (
+        {blocks.length > 0 && !isShop ? (
           <section className="mt-8 space-y-3">
             {blocks.map((block) =>
               block.kind === "heading" ? (
@@ -82,7 +91,7 @@ export function Storefront({
                   href={block.url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-12 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-fg shadow-soft transition-[transform,background-color] duration-150 hover:bg-bg active:scale-[0.98]"
+                  className="flex min-h-12 items-center justify-center rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-fg shadow-soft transition-[transform,background-color] duration-150 hover:bg-bg active:scale-[0.98]"
                 >
                   {block.title}
                 </a>
@@ -91,14 +100,27 @@ export function Storefront({
           </section>
         ) : null}
 
-        {links.length > 0 && shop.layout === "links" ? (
+        {isLinks && (links.length > 0 || catalog.length > 0) ? (
           <section className="mt-3 space-y-3">
+            {catalog.map((product) => (
+              <Link
+                key={product.id}
+                to="/$username/$slug"
+                params={{ username: shop.username, slug: product.slug }}
+                className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-fg shadow-soft"
+              >
+                <span className="truncate">{product.title}</span>
+                <span className="shrink-0 tabular-nums text-muted">
+                  {formatPrice(product.price, product.currency)}
+                </span>
+              </Link>
+            ))}
             {links.map((product) => (
               <Link
                 key={product.id}
                 to="/$username/$slug"
                 params={{ username: shop.username, slug: product.slug }}
-                className="flex h-12 items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-fg shadow-soft"
+                className="flex min-h-12 items-center justify-center rounded-lg border border-border bg-surface px-4 py-3 text-sm font-medium text-fg shadow-soft"
               >
                 {product.title}
               </Link>
@@ -106,7 +128,7 @@ export function Storefront({
           </section>
         ) : null}
 
-        {catalog.length > 0 && shop.layout !== "links" ? (
+        {catalog.length > 0 && !isLinks ? (
           <section className="mt-10">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold tracking-tight text-fg">
@@ -122,7 +144,7 @@ export function Storefront({
           </section>
         ) : null}
 
-        {links.length > 0 && shop.layout !== "links" ? (
+        {links.length > 0 && !isLinks ? (
           <section className="mt-10">
             <h2 className="mb-3 text-sm font-semibold tracking-tight text-fg">Free resources</h2>
             <div className="space-y-3">
@@ -143,6 +165,13 @@ export function Storefront({
 
         {catalog.length === 0 && links.length === 0 && blocks.length === 0 ? (
           <p className="mt-12 text-center text-sm text-muted">Nothing listed yet.</p>
+        ) : null}
+
+        {shop.terms ? (
+          <details className="mt-12 rounded-xl border border-border bg-surface px-4 py-3">
+            <summary className="cursor-pointer text-sm font-medium text-fg">Store terms</summary>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted">{shop.terms}</p>
+          </details>
         ) : null}
 
         <p className="mt-16 flex items-center justify-center gap-2 text-xs text-subtle">
@@ -202,6 +231,7 @@ export function ProductCard({
     >
       <ProductCover
         style={product.coverStyle}
+        imageUrl={product.coverUrl}
         title={compact ? undefined : product.title}
         className={compact ? "aspect-[16/10]" : "aspect-[16/9]"}
       />

@@ -48,7 +48,7 @@ export function initials(name: string): string {
 
 export function makeOrderRef(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "VELA-";
+  let out = "KART-";
   for (let i = 0; i < 8; i += 1) {
     out += alphabet[Math.floor(Math.random() * alphabet.length)];
   }

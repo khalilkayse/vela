@@ -17,7 +17,7 @@ export function ProductFiles({ productId }: { productId: number }) {
   const [uploading, setUploading] = useState(false);
 
   async function reload() {
-    const next = await listProductFiles({ data: productId });
+    const next = await listProductFiles({ data: { productId, kind: "delivery" } });
     setFiles(next);
   }
 
@@ -30,7 +30,7 @@ export function ProductFiles({ productId }: { productId: number }) {
       .catch(() => {
         if (!cancelled) setReady(false);
       });
-    listProductFiles({ data: productId })
+    listProductFiles({ data: { productId, kind: "delivery" } })
       .then((next) => {
         if (!cancelled) setFiles(next);
       })
@@ -80,8 +80,8 @@ export function ProductFiles({ productId }: { productId: number }) {
       <div className="rounded-xl border border-border bg-surface p-5 shadow-soft">
         <p className="text-sm font-medium text-fg">Delivery files</p>
         <p className="mt-1.5 text-sm text-muted">
-          File storage is not configured yet. The platform owner sets an S3 or R2 bucket in the
-          hidden console.
+          Private downloads need object storage. Ask the platform owner to connect an S3 or R2 bucket.
+          Product photos still work without it.
         </p>
       </div>
     );
@@ -93,7 +93,7 @@ export function ProductFiles({ productId }: { productId: number }) {
         <div>
           <p className="text-sm font-medium text-fg">Delivery files</p>
           <p className="mt-1 text-xs text-muted">
-            Private in object storage. Unlocked on the success page after a paid order — max 40 MB each.
+            Private. Unlocked on the success page after a paid order — max 40 MB each.
           </p>
         </div>
         <Button

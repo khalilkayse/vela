@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/skeleton";
+import { ImageWell } from "@/components/image-well";
+import { UsernameInput } from "@/components/username-field";
 import { LAYOUTS, type ShopLayout } from "@/lib/constants";
 import { LayoutSketch } from "@/components/layout-sketch";
 import { errMsg } from "@/lib/errors";
 import { disconnectSifalo, getMyPayPolicy, saveSifaloCredentials, updateShop } from "@/lib/server/shops";
+import { removeProductFile } from "@/lib/server/files";
+import { uploadMedia } from "@/lib/upload";
 import { formatCountry } from "@/lib/geo";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +25,8 @@ function SettingsPage() {
   const [username, setUsername] = useState(shop.username);
   const [tagline, setTagline] = useState(shop.tagline);
   const [bio, setBio] = useState(shop.bio);
+  const [terms, setTerms] = useState(shop.terms);
+  const [contactEmail, setContactEmail] = useState(shop.contactEmail ?? "");
   const [layout, setLayout] = useState<ShopLayout>(shop.layout);
   const [websiteUrl, setWebsiteUrl] = useState(shop.websiteUrl ?? "");
   const [instagramUrl, setInstagramUrl] = useState(shop.instagramUrl ?? "");
@@ -29,10 +35,12 @@ function SettingsPage() {
   const [tiktokUrl, setTiktokUrl] = useState(shop.tiktokUrl ?? "");
   const [published, setPublished] = useState(shop.published);
   const [country, setCountry] = useState(shop.country ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(shop.avatarUrl);
   const [apiKey, setApiKey] = useState("");
   const [apiPassword, setApiPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [savingPay, setSavingPay] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [payPolicy, setPayPolicy] = useState<{
     platformCollects: boolean;
     allowOwnKeys: boolean;
@@ -55,6 +63,8 @@ function SettingsPage() {
           username,
           tagline,
           bio,
+          terms,
+          contactEmail,
           layout,
           websiteUrl,
           instagramUrl,
@@ -71,6 +81,34 @@ function SettingsPage() {
       toast.error(errMsg(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function onAvatar(file: File) {
+    setUploading(true);
+    try {
+      const uploaded = await uploadMedia(file, { kind: "avatar" });
+      setAvatarUrl(uploaded.url);
+      await reloadShop();
+      toast.success("Photo updated.");
+    } catch (error) {
+      toast.error(errMsg(error));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function clearAvatar() {
+    if (!shop.avatarFileId) {
+      setAvatarUrl(null);
+      return;
+    }
+    try {
+      await removeProductFile({ data: shop.avatarFileId });
+      setAvatarUrl(null);
+      await reloadShop();
+    } catch (error) {
+      toast.error(errMsg(error));
     }
   }
 
@@ -106,15 +144,24 @@ function SettingsPage() {
   }
 
   return (
-    <DashboardPage title="Settings" description="Your public page, username, and Sifalo Pay credentials.">
+    <DashboardPage title="Settings" description="Your public page, username, terms, and Sifalo Pay.">
       <form onSubmit={onSave} className="space-y-5 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6">
         <h2 className="text-base font-semibold text-fg">Profile</h2>
+        <ImageWell
+          label="Profile photo"
+          hint="Shown at the top of Studio and Page layouts. Square works best."
+          url={avatarUrl}
+          compact
+          onFile={onAvatar}
+          onClear={avatarUrl ? () => void clearAvatar() : undefined}
+          busy={uploading}
+        />
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Display name">
             <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
           </Field>
           <Field label="Username" hint={typeof window !== "undefined" ? `${window.location.origin}/${username}` : `/${username}`}>
-            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required />
+            <UsernameInput value={username} onChange={setUsername} />
           </Field>
         </div>
         <Field label="Tagline">
@@ -159,6 +206,14 @@ function SettingsPage() {
           <Field label="TikTok">
             <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://" />
           </Field>
+          <Field label="Order email" hint="New-order notices go here. Defaults to your account email.">
+            <Input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="studio@example.com"
+            />
+          </Field>
         </div>
         <Field label="Country" hint={country ? formatCountry(country) : "Inherited from signup. Used to base the store in a market."}>
           <Input
@@ -167,6 +222,12 @@ function SettingsPage() {
             placeholder="SO"
             maxLength={2}
           />
+        </Field>
+        <Field
+          label="Store terms"
+          hint="Shown on your public page and required at checkout. Refunds, delivery, usage — whatever buyers should agree to."
+        >
+          <Textarea value={terms} onChange={(e) => setTerms(e.target.value)} maxLength={8000} />
         </Field>
         <Switch checked={published} onCheckedChange={setPublished} label="Published — listed on Discover and reachable at /you" />
         <Button type="submit" disabled={saving}>
@@ -179,24 +240,21 @@ function SettingsPage() {
           <div>
             <h2 className="text-base font-semibold text-fg">Sifalo Pay</h2>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              Use the API username and password from your Sifalo Pay dashboard
-              (Merchant → API). Checkout posts to the gateway configured by the
-              platform, then verifies the <code className="text-fg">sid</code> on
-              return. Docs:{" "}
+              Get your API username and password from{" "}
               <a
                 className="font-medium text-fg underline-offset-4 hover:underline"
-                href="https://developer.sifalopay.com/docs/hosted-checkout"
+                href="https://sifalopay.com"
                 target="_blank"
                 rel="noreferrer"
               >
-                developer.sifalopay.com
+                sifalopay.com
               </a>
-              . Funds never pass through Kart. If checkout already works without
-              keys here, the platform is collecting with its own merchant account.
-              Operators can still grant this shop its own keys in /dashx.
+              , then paste them here. Checkout goes to your Sifalo Pay account — Kart never holds the money.
             </p>
           </div>
-          {shop.hasSifaloCredentials ? (
+          {shop.checkoutLive ? (
+            <Badge tone="success">Live checkout</Badge>
+          ) : shop.hasSifaloCredentials ? (
             <Badge tone={shop.sifaloConnected ? "success" : "warn"}>
               {shop.sifaloConnected ? "Connected" : "Saved"}
             </Badge>
@@ -216,7 +274,7 @@ function SettingsPage() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               autoComplete="off"
-              placeholder={shop.hasSifaloCredentials ? "Saved — enter to replace" : "Your Sifalo API user"}
+              placeholder={shop.hasSifaloCredentials ? "Saved — enter to replace" : "From sifalopay.com"}
               required
             />
           </Field>

@@ -1,30 +1,42 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
-import { RESERVED_USERNAMES, BRAND_HEX, type ShopLayout } from "@/lib/constants";
-import { initials, usernamePattern } from "@/lib/utils";
-import { mapBlock, mapProduct, mapShop, type ShopRow, type ProductRow, type BlockRow } from "./map";
-
-function normalizeUsername(raw: string): string {
-  return raw.trim().toLowerCase();
-}
-
-function assertUsername(username: string) {
-  if (!usernamePattern().test(username)) {
-    throw new Error("Use 3–24 letters, numbers, or hyphens. Start and end with a letter or number.");
-  }
-  if (RESERVED_USERNAMES.has(username)) {
-    throw new Error("That username is reserved.");
-  }
-}
+import { BRAND_HEX, type ShopLayout } from "@/lib/constants";
+import { initials } from "@/lib/utils";
+import {
+  assertUsername,
+  normalizeUsername,
+  USERNAME_FORMAT,
+  USERNAME_UNAVAILABLE,
+  usernameFormatOk,
+} from "@/lib/server/usernames";
+import {
+  decorateShop,
+  mapBlock,
+  mapProduct,
+  mapShop,
+  type ShopRow,
+  type ProductRow,
+  type BlockRow,
+} from "./map";
+import { publicMediaPath } from "@/lib/upload";
 
 export const getMyShop = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const rows = await sql<ShopRow>`select * from shops where user_id = ${context.userId} limit 1`;
-    return rows[0] ? mapShop(rows[0]) : null;
+    return rows[0] ? decorateShop(rows[0]) : null;
   });
+
+async function productGallery(productId: number) {
+  const sql = await getSql();
+  const rows = await sql.query<{ id: number }>(
+    `select id from product_files where product_id = $1 and kind = 'gallery' order by id asc`,
+    [productId],
+  );
+  return rows.map((row) => ({ id: row.id, url: publicMediaPath(row.id) }));
+}
 
 export const getPublicShop = createServerFn({ method: "GET" })
   .validator((username: string) => normalizeUsername(username))
@@ -33,7 +45,7 @@ export const getPublicShop = createServerFn({ method: "GET" })
     const shops = await sql<ShopRow>`select * from shops where username = ${username} and published = true limit 1`;
     const shopRow = shops[0];
     if (!shopRow) return null;
-    const shop = mapShop(shopRow);
+    const shop = await decorateShop(shopRow);
     const products = await sql<ProductRow>`
       select * from products
       where shop_id = ${shop.id} and published = true
@@ -44,9 +56,13 @@ export const getPublicShop = createServerFn({ method: "GET" })
       where shop_id = ${shop.id} and visible = true
       order by sort_order asc, id asc
     `;
+    const mapped = [];
+    for (const row of products) {
+      mapped.push(mapProduct(row, { gallery: await productGallery(row.id) }));
+    }
     return {
       shop,
-      products: products.map(mapProduct),
+      products: mapped,
       blocks: blocks.map(mapBlock),
     };
   });
@@ -64,19 +80,22 @@ export const usernameAvailable = createServerFn({ method: "POST" })
   .validator((username: string) => normalizeUsername(username))
   .handler(async ({ context, data: username }) => {
     if (!username) return { ok: false as const, reason: "Choose a username." };
+    if (!usernameFormatOk(username)) {
+      return { ok: false as const, reason: USERNAME_FORMAT };
+    }
     try {
-      assertUsername(username);
-    } catch (err) {
-      return { ok: false as const, reason: err instanceof Error ? err.message : "Invalid username." };
+      await assertUsername(username);
+    } catch {
+      return { ok: false as const, reason: USERNAME_UNAVAILABLE };
     }
     const sql = await getSql();
     const taken = await sql<{ id: number; user_id: string }>`
       select id, user_id from shops where username = ${username} limit 1
     `;
     if (taken[0] && taken[0].user_id !== context.userId) {
-      return { ok: false as const, reason: "That username is taken." };
+      return { ok: false as const, reason: USERNAME_UNAVAILABLE };
     }
-    return { ok: true as const, reason: `/${username} is yours.` };
+    return { ok: true as const, reason: "This username is available." };
   });
 
 export const createShop = createServerFn({ method: "POST" })
@@ -85,7 +104,6 @@ export const createShop = createServerFn({ method: "POST" })
     const username = normalizeUsername(input.username ?? "");
     const displayName = (input.displayName ?? "").trim();
     if (!displayName) throw new Error("Give your shop a name.");
-    assertUsername(username);
     const layout: ShopLayout =
       input.layout === "shop" || input.layout === "links" || input.layout === "hybrid"
         ? input.layout
@@ -98,11 +116,12 @@ export const createShop = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ context, data }) => {
+    await assertUsername(data.username);
     const sql = await getSql();
     const existing = await sql<{ id: number }>`select id from shops where user_id = ${context.userId} limit 1`;
     if (existing[0]) throw new Error("You already have a shop.");
     const taken = await sql<{ id: number }>`select id from shops where username = ${data.username} limit 1`;
-    if (taken[0]) throw new Error("That username is taken.");
+    if (taken[0]) throw new Error(USERNAME_UNAVAILABLE);
     const { signupCountryFor } = await import("./profiles");
     const country = await signupCountryFor(context.userId);
     const rows = await sql<ShopRow>`
@@ -118,7 +137,7 @@ export const createShop = createServerFn({ method: "POST" })
       )
       returning *
     `;
-    const shop = mapShop(rows[0]);
+    const shop = await decorateShop(rows[0]);
     void sendShopWelcome(context.userId, shop.username, shop.displayName);
     return shop;
   });
@@ -138,6 +157,11 @@ export const updateShop = createServerFn({ method: "POST" })
         : shop.display_name;
     const tagline = typeof data.tagline === "string" ? data.tagline.trim().slice(0, 120) : shop.tagline;
     const bio = typeof data.bio === "string" ? data.bio.trim().slice(0, 600) : shop.bio;
+    const terms = typeof data.terms === "string" ? data.terms.trim().slice(0, 8000) : (shop.terms ?? "");
+    const contactEmail =
+      typeof data.contactEmail === "string"
+        ? emptyToNull(data.contactEmail)
+        : shop.contact_email ?? null;
     const layout =
       data.layout === "shop" || data.layout === "links" || data.layout === "hybrid"
         ? data.layout
@@ -157,13 +181,13 @@ export const updateShop = createServerFn({ method: "POST" })
 
     let username = shop.username;
     if (typeof data.username === "string") {
-      const next = data.username.trim().toLowerCase();
+      const next = normalizeUsername(data.username);
       if (next !== shop.username) {
-        assertUsername(next);
+        await assertUsername(next);
         const taken = await sql<{ id: number }>`
           select id from shops where username = ${next} and user_id <> ${context.userId} limit 1
         `;
-        if (taken[0]) throw new Error("That username is taken.");
+        if (taken[0]) throw new Error(USERNAME_UNAVAILABLE);
         username = next;
       }
     }
@@ -174,6 +198,8 @@ export const updateShop = createServerFn({ method: "POST" })
         display_name = ${displayName},
         tagline = ${tagline},
         bio = ${bio},
+        terms = ${terms},
+        contact_email = ${contactEmail},
         avatar_initials = ${initials(displayName)},
         layout = ${layout},
         website_url = ${websiteUrl},
@@ -188,7 +214,7 @@ export const updateShop = createServerFn({ method: "POST" })
       where user_id = ${context.userId}
       returning *
     `;
-    return mapShop(rows[0]);
+    return decorateShop(rows[0]);
   });
 
 export const saveSifaloCredentials = createServerFn({ method: "POST" })
@@ -277,7 +303,7 @@ async function sendShopWelcome(userId: string, username: string, displayName: st
         "Your shop is ready",
         `<p style="line-height:1.6">${escapeHtml(displayName)} is on Kart. Share this link:</p>
          <p><a href="${escapeHtml(url)}" style="color:${BRAND_HEX.primary}">${escapeHtml(url)}</a></p>
-         <p style="line-height:1.6;color:${BRAND_HEX.muted}">Connect Sifalo Pay in settings when you want live checkout.</p>`,
+         <p style="line-height:1.6;color:${BRAND_HEX.muted}">Connect Sifalo Pay in settings when you want live checkout. Get keys at sifalopay.com.</p>`,
       ),
     });
   } catch (err) {

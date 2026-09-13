@@ -12,6 +12,7 @@ export const BRAND_HEX = {
   surface: "#fffdf8",
 } as const;
 
+/** Always blocked as shop usernames. Extra names are added in /dashx. */
 export const RESERVED_USERNAMES = new Set([
   "login",
   "signup",
@@ -76,7 +77,7 @@ export const LAYOUTS = [
 
 export type ShopLayout = (typeof LAYOUTS)[number]["id"];
 
-/** Hosts from https://developer.sifalopay.com — live keys only work on .com. */
+/** Hosts from Sifalo Pay. Live keys only work on .com. */
 export type SifaloHosts = {
   gatewayUrl: string;
   verifyUrl: string;

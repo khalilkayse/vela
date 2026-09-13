@@ -17,10 +17,12 @@ function palette(style: string): [string, string, string] {
 export function ProductCover({
   style = "mesh-1",
   title,
+  imageUrl,
   className,
 }: {
   style?: string;
   title?: string;
+  imageUrl?: string | null;
   className?: string;
 }) {
   const [a, b, c] = palette(style);
@@ -32,20 +34,24 @@ export function ProductCover({
         className,
       )}
     >
-      <svg className="absolute inset-0 size-full" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={a} />
-            <stop offset="100%" stopColor={b} />
-          </linearGradient>
-        </defs>
-        <rect width="400" height="260" fill={`url(#${id}-g)`} />
-        <circle cx="320" cy="40" r="90" fill={c} opacity="0.28" />
-        <circle cx="60" cy="210" r="110" fill={a} opacity="0.4" />
-        <path d="M0 180 C 80 120, 160 220, 400 90 L 400 260 L 0 260 Z" fill={c} opacity="0.2" />
-        <path d="M40 40 L 120 40 L 80 110 Z" fill="white" opacity="0.1" />
-      </svg>
-      {title ? (
+      {imageUrl ? (
+        <img src={imageUrl} alt="" className="absolute inset-0 size-full object-cover" />
+      ) : (
+        <svg className="absolute inset-0 size-full" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id={`${id}-g`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={a} />
+              <stop offset="100%" stopColor={b} />
+            </linearGradient>
+          </defs>
+          <rect width="400" height="260" fill={`url(#${id}-g)`} />
+          <circle cx="320" cy="40" r="90" fill={c} opacity="0.28" />
+          <circle cx="60" cy="210" r="110" fill={a} opacity="0.4" />
+          <path d="M0 180 C 80 120, 160 220, 400 90 L 400 260 L 0 260 Z" fill={c} opacity="0.2" />
+          <path d="M40 40 L 120 40 L 80 110 Z" fill="white" opacity="0.1" />
+        </svg>
+      )}
+      {title && !imageUrl ? (
         <div className="relative flex h-full min-h-28 items-end p-4">
           <p className="max-w-[18ch] font-display text-lg font-bold leading-tight tracking-tight text-primary-fg">
             {title}
