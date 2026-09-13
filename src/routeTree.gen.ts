@@ -11,22 +11,23 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsernameRouteImport } from './routes/$username'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DashxRouteImport } from './routes/dashx'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as UsernameIndexRouteImport } from './routes/$username/index'
 import { Route as UsernameSlugRouteImport } from './routes/$username.$slug'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
-import { Route as AdminShopsRouteImport } from './routes/admin/shops'
-import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardPageRouteImport } from './routes/dashboard/page'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard/products'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashxIndexRouteImport } from './routes/dashx/index'
+import { Route as DashxMailRouteImport } from './routes/dashx/mail'
+import { Route as DashxOrdersRouteImport } from './routes/dashx/orders'
+import { Route as DashxShopsRouteImport } from './routes/dashx/shops'
+import { Route as DashxUsersRouteImport } from './routes/dashx/users'
 import { Route as PayReturnRouteImport } from './routes/pay/return'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as DashboardProductsIdRouteImport } from './routes/dashboard/products.$id'
@@ -44,14 +45,14 @@ const UsernameRoute = UsernameRouteImport.update({
   path: '/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashxRoute = DashxRouteImport.update({
+  id: '/dashx',
+  path: '/dashx',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DiscoverRoute = DiscoverRouteImport.update({
@@ -79,26 +80,6 @@ const UsernameSlugRoute = UsernameSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => UsernameRoute,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOrdersRoute = AdminOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminShopsRoute = AdminShopsRouteImport.update({
-  id: '/shops',
-  path: '/shops',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
-} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -123,6 +104,31 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => DashboardRoute,
+} as any)
+const DashxIndexRoute = DashxIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashxRoute,
+} as any)
+const DashxMailRoute = DashxMailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
+  getParentRoute: () => DashxRoute,
+} as any)
+const DashxOrdersRoute = DashxOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => DashxRoute,
+} as any)
+const DashxShopsRoute = DashxShopsRouteImport.update({
+  id: '/shops',
+  path: '/shops',
+  getParentRoute: () => DashxRoute,
+} as any)
+const DashxUsersRoute = DashxUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashxRoute,
 } as any)
 const PayReturnRoute = PayReturnRouteImport.update({
   id: '/pay/return',
@@ -158,23 +164,24 @@ const PaySuccessOrderRefRoute = PaySuccessOrderRefRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
-  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashx': typeof DashxRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/$username/$slug': typeof UsernameSlugRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/shops': typeof AdminShopsRoute
-  '/admin/users': typeof AdminUsersRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/mail': typeof DashxMailRoute
+  '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username/': typeof UsernameIndexRoute
-  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
@@ -187,17 +194,18 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/$username/$slug': typeof UsernameSlugRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/shops': typeof AdminShopsRoute
-  '/admin/users': typeof AdminUsersRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/mail': typeof DashxMailRoute
+  '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username': typeof UsernameIndexRoute
-  '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashx': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
@@ -208,23 +216,24 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
-  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashx': typeof DashxRouteWithChildren
   '/discover': typeof DiscoverRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/$username/$slug': typeof UsernameSlugRoute
-  '/admin/orders': typeof AdminOrdersRoute
-  '/admin/shops': typeof AdminShopsRoute
-  '/admin/users': typeof AdminUsersRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/page': typeof DashboardPageRoute
   '/dashboard/products': typeof DashboardProductsRouteWithChildren
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashx/mail': typeof DashxMailRoute
+  '/dashx/orders': typeof DashxOrdersRoute
+  '/dashx/shops': typeof DashxShopsRoute
+  '/dashx/users': typeof DashxUsersRoute
   '/pay/return': typeof PayReturnRoute
   '/$username/': typeof UsernameIndexRoute
-  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
@@ -236,23 +245,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$username'
-    | '/admin'
     | '/dashboard'
+    | '/dashx'
     | '/discover'
     | '/login'
     | '/onboarding'
     | '/$username/$slug'
-    | '/admin/orders'
-    | '/admin/shops'
-    | '/admin/users'
     | '/dashboard/orders'
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/mail'
+    | '/dashx/orders'
+    | '/dashx/shops'
+    | '/dashx/users'
     | '/pay/return'
     | '/$username/'
-    | '/admin/'
     | '/dashboard/'
+    | '/dashx/'
     | '/api/auth/$'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
@@ -265,17 +275,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/$username/$slug'
-    | '/admin/orders'
-    | '/admin/shops'
-    | '/admin/users'
     | '/dashboard/orders'
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/mail'
+    | '/dashx/orders'
+    | '/dashx/shops'
+    | '/dashx/users'
     | '/pay/return'
     | '/$username'
-    | '/admin'
     | '/dashboard'
+    | '/dashx'
     | '/api/auth/$'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
@@ -285,23 +296,24 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$username'
-    | '/admin'
     | '/dashboard'
+    | '/dashx'
     | '/discover'
     | '/login'
     | '/onboarding'
     | '/$username/$slug'
-    | '/admin/orders'
-    | '/admin/shops'
-    | '/admin/users'
     | '/dashboard/orders'
     | '/dashboard/page'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashx/mail'
+    | '/dashx/orders'
+    | '/dashx/shops'
+    | '/dashx/users'
     | '/pay/return'
     | '/$username/'
-    | '/admin/'
     | '/dashboard/'
+    | '/dashx/'
     | '/api/auth/$'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
@@ -312,8 +324,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   UsernameRoute: typeof UsernameRouteWithChildren
-  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  DashxRoute: typeof DashxRouteWithChildren
   DiscoverRoute: typeof DiscoverRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -339,18 +351,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashx': {
+      id: '/dashx'
+      path: '/dashx'
+      fullPath: '/dashx'
+      preLoaderRoute: typeof DashxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/discover': {
@@ -388,34 +400,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsernameSlugRouteImport
       parentRoute: typeof UsernameRoute
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/shops': {
-      id: '/admin/shops'
-      path: '/shops'
-      fullPath: '/admin/shops'
-      preLoaderRoute: typeof AdminShopsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/'
@@ -450,6 +434,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/settings'
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/dashx/': {
+      id: '/dashx/'
+      path: '/'
+      fullPath: '/dashx/'
+      preLoaderRoute: typeof DashxIndexRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/mail': {
+      id: '/dashx/mail'
+      path: '/mail'
+      fullPath: '/dashx/mail'
+      preLoaderRoute: typeof DashxMailRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/orders': {
+      id: '/dashx/orders'
+      path: '/orders'
+      fullPath: '/dashx/orders'
+      preLoaderRoute: typeof DashxOrdersRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/shops': {
+      id: '/dashx/shops'
+      path: '/shops'
+      fullPath: '/dashx/shops'
+      preLoaderRoute: typeof DashxShopsRouteImport
+      parentRoute: typeof DashxRoute
+    }
+    '/dashx/users': {
+      id: '/dashx/users'
+      path: '/users'
+      fullPath: '/dashx/users'
+      preLoaderRoute: typeof DashxUsersRouteImport
+      parentRoute: typeof DashxRoute
     }
     '/pay/return': {
       id: '/pay/return'
@@ -510,22 +529,6 @@ const UsernameRouteWithChildren = UsernameRoute._addFileChildren(
   UsernameRouteChildren,
 )
 
-interface AdminRouteChildren {
-  AdminOrdersRoute: typeof AdminOrdersRoute
-  AdminShopsRoute: typeof AdminShopsRoute
-  AdminUsersRoute: typeof AdminUsersRoute
-  AdminIndexRoute: typeof AdminIndexRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminOrdersRoute: AdminOrdersRoute,
-  AdminShopsRoute: AdminShopsRoute,
-  AdminUsersRoute: AdminUsersRoute,
-  AdminIndexRoute: AdminIndexRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
-
 interface DashboardProductsRouteChildren {
   DashboardProductsIdRoute: typeof DashboardProductsIdRoute
   DashboardProductsNewRoute: typeof DashboardProductsNewRoute
@@ -559,11 +562,29 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
   DashboardRouteChildren,
 )
 
+interface DashxRouteChildren {
+  DashxMailRoute: typeof DashxMailRoute
+  DashxOrdersRoute: typeof DashxOrdersRoute
+  DashxShopsRoute: typeof DashxShopsRoute
+  DashxUsersRoute: typeof DashxUsersRoute
+  DashxIndexRoute: typeof DashxIndexRoute
+}
+
+const DashxRouteChildren: DashxRouteChildren = {
+  DashxMailRoute: DashxMailRoute,
+  DashxOrdersRoute: DashxOrdersRoute,
+  DashxShopsRoute: DashxShopsRoute,
+  DashxUsersRoute: DashxUsersRoute,
+  DashxIndexRoute: DashxIndexRoute,
+}
+
+const DashxRouteWithChildren = DashxRoute._addFileChildren(DashxRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRouteWithChildren,
-  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  DashxRoute: DashxRouteWithChildren,
   DiscoverRoute: DiscoverRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,

@@ -35,7 +35,12 @@ function Discover() {
           ))}
         </div>
         {shops.length === 0 ? (
-          <p className="mt-12 text-sm text-muted">No public shops yet.</p>
+          <div className="mt-12 rounded-xl border border-dashed border-border bg-surface px-6 py-10">
+            <p className="font-semibold text-fg">No public shops yet</p>
+            <p className="mt-2 max-w-md text-sm text-muted">
+              Claim a unique username and publish your page. It will show up here for visitors to browse.
+            </p>
+          </div>
         ) : null}
       </main>
       <SiteFooter />

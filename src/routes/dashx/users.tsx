@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { AdminPage } from "@/components/admin-shell";
+import { AdminPage } from "@/components/dashx-shell";
 import { Badge, Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listPlatformUsers, type AdminUser } from "@/lib/server/admin";
 
-export const Route = createFileRoute("/admin/users")({ component: AdminUsers });
+export const Route = createFileRoute("/dashx/users")({ component: AdminUsers });
 
 function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);

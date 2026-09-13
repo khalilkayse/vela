@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { LAYOUTS, type ShopLayout } from "@/lib/constants";
 import { errMsg } from "@/lib/errors";
-import { createShop, getMyShop } from "@/lib/server/shops";
+import { createShop, getMyShop, usernameAvailable } from "@/lib/server/shops";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({ component: Onboarding });
@@ -21,6 +21,8 @@ function Onboarding() {
   const [layout, setLayout] = useState<ShopLayout>("hybrid");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<{ ok: boolean; reason: string } | null>(null);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   useEffect(() => {
     if (!user) return;
@@ -30,6 +32,20 @@ function Onboarding() {
       })
       .catch(() => undefined);
   }, [user, navigate]);
+
+  useEffect(() => {
+    const value = username.trim().toLowerCase();
+    if (value.length < 3) {
+      setAvailability(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      usernameAvailable({ data: value })
+        .then((result) => setAvailability(result))
+        .catch(() => setAvailability(null));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [username]);
 
   if (isPending) {
     return <div className="min-h-screen bg-bg" />;
@@ -56,7 +72,7 @@ function Onboarding() {
       <Logo />
       <h1 className="mt-8 font-display text-4xl tracking-tight text-fg">Open your shop</h1>
       <p className="mt-2 text-sm text-muted">
-        This becomes your public URL. You can change the name later. The username is harder to move.
+        This becomes your public URL. Usernames are unique — {origin || "your domain"}/{username || "you"}.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
         <Field label="Display name">
@@ -67,7 +83,7 @@ function Onboarding() {
             placeholder="Maya Atelier"
           />
         </Field>
-        <Field label="Username" hint="vela.app/you — 3 to 24 letters, numbers, or hyphens.">
+        <Field label="Username" hint="3 to 24 letters, numbers, or hyphens. This is the shareable link.">
           <div className="flex overflow-hidden rounded-md border border-border bg-surface focus-within:ring-2 focus-within:ring-ring/40">
             <span className="grid place-items-center bg-bg px-3 text-sm text-muted">/</span>
             <input
@@ -78,6 +94,11 @@ function Onboarding() {
               placeholder="maya"
             />
           </div>
+          {availability ? (
+            <p className={cn("mt-1.5 text-xs", availability.ok ? "text-success" : "text-danger")}>
+              {availability.ok ? `${origin}/${username} is available.` : availability.reason}
+            </p>
+          ) : null}
         </Field>
         <Field label="Tagline">
           <Input

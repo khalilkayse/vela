@@ -2,7 +2,7 @@ import { createMiddleware } from "@tanstack/react-start";
 
 /**
  * Same as authMiddleware, plus a platform-owner check.
- * Use only on /admin server functions.
+ * Use only on /dashx server functions.
  */
 export const adminMiddleware = createMiddleware({ type: "function" })
   .client(async ({ next }) => {

@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AdminPage } from "@/components/admin-shell";
+import { AdminPage } from "@/components/dashx-shell";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listPlatformShops, setShopPublished, type AdminShop } from "@/lib/server/admin";
 
-export const Route = createFileRoute("/admin/shops")({ component: AdminShops });
+export const Route = createFileRoute("/dashx/shops")({ component: AdminShops });
 
 function AdminShops() {
   const [shops, setShops] = useState<AdminShop[] | null>(null);

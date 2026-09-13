@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
-import { AdminPage } from "@/components/admin-shell";
+import { AdminPage } from "@/components/dashx-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +9,7 @@ import { OrderBadge } from "@/components/order-badge";
 import { listPlatformOrders } from "@/lib/server/admin";
 import { formatPrice } from "@/lib/utils";
 
-export const Route = createFileRoute("/admin/orders")({ component: AdminOrders });
+export const Route = createFileRoute("/dashx/orders")({ component: AdminOrders });
 
 function AdminOrders() {
   const [orders, setOrders] = useState<Awaited<ReturnType<typeof listPlatformOrders>> | null>(null);

@@ -292,7 +292,50 @@ export const auth = betterAuth({
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
-  ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+  ...(emailAndPasswordEnabled
+    ? {
+        emailAndPassword: {
+          enabled: true,
+          requireEmailVerification: false,
+          sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+            const { sendMail, mailLayout, smtpConfigured, escapeHtml } = await import("../mail");
+            if (!(await smtpConfigured())) {
+              console.warn(`[auth] password reset for ${user.email} skipped — configure SMTP in /dashx`);
+              return;
+            }
+            await sendMail({
+              to: user.email,
+              subject: "Reset your Vela password",
+              html: mailLayout(
+                "Reset your password",
+                `<p style="line-height:1.6">Use this link to choose a new password. It expires soon.</p>
+                 <p><a href="${escapeHtml(url)}" style="color:#4c1d95">Reset password</a></p>`,
+              ),
+            });
+          },
+        },
+        emailVerification: {
+          sendOnSignUp: true,
+          autoSignInAfterVerification: true,
+          sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }) => {
+            const { sendMail, mailLayout, smtpConfigured, escapeHtml } = await import("../mail");
+            if (!(await smtpConfigured())) {
+              console.warn(`[auth] verification email for ${user.email} skipped — configure SMTP in /dashx`);
+              return;
+            }
+            await sendMail({
+              to: user.email,
+              subject: "Confirm your Vela email",
+              html: mailLayout(
+                "Confirm your email",
+                `<p style="line-height:1.6">Welcome to Vela. Confirm this address so we can send shop notices and receipts.</p>
+                 <p><a href="${escapeHtml(url)}" style="color:#4c1d95">Confirm email</a></p>`,
+              ),
+            });
+          },
+        },
+      }
+    : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a

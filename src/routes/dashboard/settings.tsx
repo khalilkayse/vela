@@ -98,7 +98,7 @@ function SettingsPage() {
           <Field label="Display name">
             <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
           </Field>
-          <Field label="Username">
+          <Field label="Username" hint={typeof window !== "undefined" ? `${window.location.origin}/${username}` : `/${username}`}>
             <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} required />
           </Field>
         </div>

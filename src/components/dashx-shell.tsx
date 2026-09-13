@@ -1,18 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Receipt, Users, Menu, X, Shield } from "lucide-react";
+import { LayoutDashboard, Store, Receipt, Users, Mail, Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { UserButton, RedirectToSignIn } from "@/lib/auth/gates";
+import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { authClient } from "@/lib/auth/client";
 import { getIsPlatformAdmin } from "@/lib/server/admin";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Field, Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errMsg } from "@/lib/errors";
 
 const NAV = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { to: "/admin/shops", label: "Shops", icon: Store, exact: false },
-  { to: "/admin/orders", label: "Orders", icon: Receipt, exact: false },
-  { to: "/admin/users", label: "Accounts", icon: Users, exact: false },
+  { to: "/dashx", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/dashx/shops", label: "Shops", icon: Store, exact: false },
+  { to: "/dashx/orders", label: "Orders", icon: Receipt, exact: false },
+  { to: "/dashx/users", label: "Accounts", icon: Users, exact: false },
+  { to: "/dashx/mail", label: "Email", icon: Mail, exact: false },
 ] as const;
 
 function navActive(pathname: string, to: string, exact: boolean) {
@@ -20,14 +25,17 @@ function navActive(pathname: string, to: string, exact: boolean) {
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
-export function AdminShell() {
+export function DashxShell() {
   const { user, isPending } = useCurrentUserState();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setAllowed(false);
+      return;
+    }
     let cancelled = false;
     getIsPlatformAdmin()
       .then((ok) => {
@@ -52,21 +60,11 @@ export function AdminShell() {
       </div>
     );
   }
-  if (!user) return <RedirectToSignIn />;
+  if (!user) return <DashxSignIn />;
   if (!allowed) {
     return (
       <main className="grid min-h-screen place-items-center bg-bg px-4">
-        <div className="max-w-md text-center">
-          <Shield className="mx-auto size-8 text-primary" />
-          <h1 className="mt-4 font-display text-3xl text-fg">Console is for the platform owner</h1>
-          <p className="mt-2 text-sm text-muted">
-            Sign in with the owner email, or set PLATFORM_ADMIN_EMAILS in Dokploy. The first account
-            becomes owner if that list is empty.
-          </p>
-          <Link to="/dashboard" className="mt-6 inline-flex h-11 items-center text-sm font-medium text-primary">
-            Back to studio
-          </Link>
-        </div>
+        <p className="text-sm text-muted">You do not have access.</p>
       </main>
     );
   }
@@ -75,22 +73,15 @@ export function AdminShell() {
     <div className="min-h-screen bg-bg">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-16 items-center px-5">
-          <Link to="/" aria-label="Vela home">
-            <Logo />
-          </Link>
+          <Logo />
         </div>
-        <p className="px-5 pb-3 text-[11px] font-semibold uppercase tracking-wider text-muted">
-          Platform
-        </p>
+        <p className="px-5 pb-3 text-[11px] font-semibold uppercase tracking-wider text-muted">Console</p>
         <nav className="flex flex-1 flex-col gap-0.5 px-3">
           {NAV.map((item) => (
             <NavLink key={item.to} {...item} pathname={pathname} />
           ))}
         </nav>
         <div className="border-t border-border p-4">
-          <Link to="/dashboard" className="mb-3 block text-sm font-medium text-muted hover:text-fg">
-            Merchant studio
-          </Link>
           <UserButton />
         </div>
       </aside>
@@ -105,7 +96,7 @@ export function AdminShell() {
           >
             <Menu className="size-5" />
           </button>
-          <p className="text-sm font-medium text-fg">Owner console</p>
+          <p className="text-sm font-medium text-fg">Platform</p>
           <span />
         </header>
         <main className="px-4 py-8 pb-24 lg:px-8 lg:pb-12">
@@ -144,6 +135,52 @@ export function AdminShell() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function DashxSignIn() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await authClient.signIn.email({ email, password, callbackURL: "/dashx" });
+      if (result.error) throw new Error(result.error.message || "Could not sign in.");
+      window.location.href = "/dashx";
+    } catch (err) {
+      setError(errMsg(err, "Could not sign in."));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-bg px-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
+        <Logo />
+        <h1 className="font-display text-3xl tracking-tight text-fg">Sign in</h1>
+        <Field label="Email">
+          <Input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        <Field label="Password">
+          <Input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? "Please wait…" : "Continue"}
+        </Button>
+      </form>
+    </main>
   );
 }
 

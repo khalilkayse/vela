@@ -26,6 +26,7 @@ function adminEmails(): Set<string> {
 
 type SessionUser = { id: string; email: string | null };
 
+/** Owner access is only the generated /dashx account (plus optional PLATFORM_ADMIN_EMAILS). */
 export async function assertPlatformAdmin(user: SessionUser): Promise<void> {
   const sql = await getSql();
   const email = user.email?.trim().toLowerCase() ?? "";
@@ -44,17 +45,6 @@ export async function assertPlatformAdmin(user: SessionUser): Promise<void> {
     [user.id],
   );
   if (existing[0]) return;
-
-  if (allow.size === 0 && email) {
-    const any = await sql.query<{ n: number }>("select count(*)::int as n from platform_admins");
-    if ((any[0]?.n ?? 0) === 0) {
-      await sql.query("insert into platform_admins (user_id, email) values ($1, $2)", [
-        user.id,
-        email,
-      ]);
-      return;
-    }
-  }
 
   throw new ForbiddenError();
 }
@@ -218,4 +208,96 @@ export const listPlatformOrders = createServerFn({ method: "GET" })
       ...mapOrder(row),
       shopUsername: row.shop_username,
     }));
+  });
+
+export const getSmtpSettings = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const { getSmtpConfig } = await import("@/lib/mail");
+    const smtp = await getSmtpConfig();
+    if (!smtp) {
+      return {
+        configured: false,
+        host: "",
+        port: 587,
+        user: "",
+        hasPassword: false,
+        fromEmail: "",
+        fromName: "Vela",
+        secure: false,
+      };
+    }
+    return {
+      configured: true,
+      host: smtp.host,
+      port: smtp.port,
+      user: smtp.user,
+      hasPassword: Boolean(smtp.pass),
+      fromEmail: smtp.fromEmail,
+      fromName: smtp.fromName,
+      secure: smtp.secure,
+    };
+  });
+
+export const saveSmtpSettings = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: {
+    host: string;
+    port: number;
+    user: string;
+    pass?: string;
+    fromEmail: string;
+    fromName: string;
+    secure: boolean;
+  }) => {
+    const host = input.host.trim();
+    const fromEmail = input.fromEmail.trim();
+    if (!host) throw new Error("SMTP host is required.");
+    if (!fromEmail || !fromEmail.includes("@")) throw new Error("From email is required.");
+    const port = Number(input.port) || 587;
+    return {
+      host,
+      port,
+      user: input.user.trim(),
+      pass: input.pass?.trim() ?? "",
+      fromEmail,
+      fromName: input.fromName.trim() || "Vela",
+      secure: Boolean(input.secure) || port === 465,
+    };
+  })
+  .handler(async ({ data }) => {
+    const { writeSettings, getSmtpConfig } = await import("@/lib/mail");
+    const entries: Record<string, string> = {
+      smtp_host: data.host,
+      smtp_port: String(data.port),
+      smtp_user: data.user,
+      smtp_from_email: data.fromEmail,
+      smtp_from_name: data.fromName,
+      smtp_secure: data.secure ? "1" : "0",
+    };
+    if (data.pass) entries.smtp_pass = data.pass;
+    else {
+      const current = await getSmtpConfig();
+      if (current?.pass) entries.smtp_pass = current.pass;
+    }
+    await writeSettings(entries);
+    return { ok: true as const };
+  });
+
+export const sendTestEmail = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .handler(async ({ context }) => {
+    const { sendMail, mailLayout, smtpConfigured, escapeHtml } = await import("@/lib/mail");
+    if (!(await smtpConfigured())) throw new Error("Save SMTP settings first.");
+    const to = context.email;
+    if (!to) throw new Error("Your account has no email.");
+    await sendMail({
+      to,
+      subject: "Vela SMTP test",
+      html: mailLayout(
+        "SMTP is working",
+        `<p style="line-height:1.6">This test was sent from the Vela owner console to <strong>${escapeHtml(to)}</strong>.</p>`,
+      ),
+    });
+    return { ok: true as const, to };
   });

@@ -37,6 +37,9 @@ export const authClient = createAuthClient({
  */
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
+/** Google/X broker buttons — off unless explicitly enabled at build time. */
+export const grokOAuthEnabled = import.meta.env.VITE_GROK_OAUTH === "true";
+
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };
 

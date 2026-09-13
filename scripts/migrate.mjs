@@ -19,6 +19,7 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 import { loadProjectEnv } from "./load-dotenv.mjs";
+import { ensureSuperAdmin } from "./bootstrap-admin.mjs";
 import { isMainModule } from "./with-app-env.mjs";
 
 const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations");
@@ -205,6 +206,7 @@ async function applyMigrations(databaseUrl) {
       const shops = await client.query("SELECT count(*)::int AS n FROM shops");
       console.log(`[migrate] shops in this database: ${shops.rows[0]?.n ?? 0} (demo storefront: /maya)`);
     }
+    await ensureSuperAdmin(client);
   } finally {
     client.release();
     await pool.end();

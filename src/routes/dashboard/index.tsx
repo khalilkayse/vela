@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, CreditCard, Package } from "lucide-react";
+import { ArrowRight, CreditCard, Package, Copy, Check } from "lucide-react";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
 import { EmptyState } from "@/components/empty-state";
 import { Badge, Card } from "@/components/ui/card";
@@ -11,13 +11,19 @@ import type { DashboardStats, Order } from "@/lib/types";
 import { OrderBadge } from "@/components/order-badge";
 import { formatPrice } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { authClient } from "@/lib/auth/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/")({ component: DashboardHome });
 
 function DashboardHome() {
   const { shop } = useShop();
+  const { user } = useCurrentUserState();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [copied, setCopied] = useState(false);
+  const pageUrl = typeof window !== "undefined" ? `${window.location.origin}/${shop.username}` : `/${shop.username}`;
 
   useEffect(() => {
     getDashboardStats().then(setStats).catch(() => setStats({ revenue: 0, orderCount: 0, paidCount: 0, productCount: 0 }));
@@ -29,6 +35,54 @@ function DashboardHome() {
       title="Home"
       description="A quiet overview of your shop, payouts, and recent orders."
     >
+      {user && !user.emailVerified ? (
+        <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-fg">Confirm your email</p>
+            <p className="mt-1 text-sm text-muted">
+              We sent a link to {user.primaryEmail}. Confirm it so we can email receipts and welcome notes.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void authClient.sendVerificationEmail({ email: user.primaryEmail ?? "" }).then((result) => {
+                if (result.error) toast.error(result.error.message);
+                else toast.success("Confirmation email sent.");
+              });
+            }}
+          >
+            Resend
+          </Button>
+        </Card>
+      ) : null}
+
+      <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold text-fg">Your public page</p>
+          <p className="mt-1 truncate font-mono text-sm text-muted">{pageUrl}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" asChild>
+            <Link to="/$username" params={{ username: shop.username }}>
+              View
+            </Link>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void navigator.clipboard.writeText(pageUrl).then(() => {
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1600);
+              });
+            }}
+          >
+            {copied ? <Check /> : <Copy />}
+            {copied ? "Copied" : "Copy link"}
+          </Button>
+        </div>
+      </Card>
+
       {!shop.hasSifaloCredentials ? (
         <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>

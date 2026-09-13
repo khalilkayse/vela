@@ -13,6 +13,7 @@ export const RESERVED_USERNAMES = new Set([
   "checkout",
   "discover",
   "admin",
+  "dashx",
   "app",
   "static",
   "assets",

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AdminPage } from "@/components/admin-shell";
+import { AdminPage } from "@/components/dashx-shell";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPlatformStats } from "@/lib/server/admin";
 import { formatPrice } from "@/lib/utils";
 
-export const Route = createFileRoute("/admin/")({ component: AdminHome });
+export const Route = createFileRoute("/dashx/")({ component: DashxHome });
 
-function AdminHome() {
+function DashxHome() {
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getPlatformStats>> | null>(null);
 
   useEffect(() => {
@@ -20,16 +20,13 @@ function AdminHome() {
   }, []);
 
   return (
-    <AdminPage
-      title="Overview"
-      description="Every merchant, shop, and Sifalo Pay order on this Vela instance."
-    >
+    <AdminPage title="Overview" description="Merchants, shops, and Sifalo Pay volume on this instance.">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Accounts" value={stats ? String(stats.users) : null} to="/admin/users" />
-        <Stat label="Shops" value={stats ? String(stats.shops) : null} to="/admin/shops" />
+        <Stat label="Accounts" value={stats ? String(stats.users) : null} to="/dashx/users" />
+        <Stat label="Shops" value={stats ? String(stats.shops) : null} to="/dashx/shops" />
         <Stat label="Products" value={stats ? String(stats.products) : null} />
-        <Stat label="Paid orders" value={stats ? String(stats.paid) : null} to="/admin/orders" />
-        <Stat label="All orders" value={stats ? String(stats.orders) : null} to="/admin/orders" />
+        <Stat label="Paid orders" value={stats ? String(stats.paid) : null} to="/dashx/orders" />
+        <Stat label="All orders" value={stats ? String(stats.orders) : null} to="/dashx/orders" />
         <Stat label="Volume" value={stats ? formatPrice(stats.revenue) : null} />
       </div>
     </AdminPage>

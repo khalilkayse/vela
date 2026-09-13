@@ -59,6 +59,26 @@ export const listPublishedShops = createServerFn({ method: "GET" }).handler(asyn
   return rows.map((row) => mapShop(row));
 });
 
+export const usernameAvailable = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((username: string) => normalizeUsername(username))
+  .handler(async ({ context, data: username }) => {
+    if (!username) return { ok: false as const, reason: "Choose a username." };
+    try {
+      assertUsername(username);
+    } catch (err) {
+      return { ok: false as const, reason: err instanceof Error ? err.message : "Invalid username." };
+    }
+    const sql = await getSql();
+    const taken = await sql<{ id: number; user_id: string }>`
+      select id, user_id from shops where username = ${username} limit 1
+    `;
+    if (taken[0] && taken[0].user_id !== context.userId) {
+      return { ok: false as const, reason: "That username is taken." };
+    }
+    return { ok: true as const, reason: `/${username} is yours.` };
+  });
+
 export const createShop = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: { username: string; displayName: string; layout?: string; tagline?: string }) => {
@@ -95,7 +115,9 @@ export const createShop = createServerFn({ method: "POST" })
       )
       returning *
     `;
-    return mapShop(rows[0]);
+    const shop = mapShop(rows[0]);
+    void sendShopWelcome(context.userId, shop.username, shop.displayName);
+    return shop;
   });
 
 export const updateShop = createServerFn({ method: "POST" })
@@ -204,4 +226,29 @@ export const disconnectSifalo = createServerFn({ method: "POST" })
 function emptyToNull(value: string): string | null {
   const t = value.trim();
   return t ? t : null;
+}
+
+async function sendShopWelcome(userId: string, username: string, displayName: string) {
+  try {
+    const { sendMail, mailLayout, smtpConfigured, escapeHtml } = await import("@/lib/mail");
+    if (!(await smtpConfigured())) return;
+    const sql = await getSql();
+    const users = await sql.query<{ email: string }>(`select email from "user" where id = $1 limit 1`, [userId]);
+    const email = users[0]?.email;
+    if (!email) return;
+    const origin = (process.env.BETTER_AUTH_URL || "https://shop.sifalo.cloud").replace(/\/+$/, "");
+    const url = `${origin}/${username}`;
+    await sendMail({
+      to: email,
+      subject: `Your Vela page is live: ${username}`,
+      html: mailLayout(
+        "Your shop is ready",
+        `<p style="line-height:1.6">${escapeHtml(displayName)} is on Vela. Share this link:</p>
+         <p><a href="${escapeHtml(url)}" style="color:#4c1d95">${escapeHtml(url)}</a></p>
+         <p style="line-height:1.6;color:#6b5d7a">Connect Sifalo Pay in settings when you want live checkout.</p>`,
+      ),
+    });
+  } catch (err) {
+    console.warn("[mail] welcome email failed:", err);
+  }
 }

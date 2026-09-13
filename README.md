@@ -55,7 +55,7 @@ npm run typecheck
 | `NITRO_PRESET` | `node-server` |
 | `HOST` / `PORT` | `0.0.0.0` / `3000` (Dokploy usually sets `PORT`) |
 
-4. Deploy. `npm start` creates the database if needed, applies `migrations/`, then starts the server. Sign up at `/login`. The first account is the platform owner and can open `/admin`. Set `PLATFORM_ADMIN_EMAILS` if you want to lock the console to specific emails.
+4. Deploy. `npm start` creates the database if needed, applies `migrations/`, then starts the server. The first boot prints a **super admin** email and password in the logs — sign in at `/dashx` (this URL is not linked anywhere in the app). Merchants sign up at `/login` and get a unique `yoursite.com/username` page.
 
 Re-deploys are safe: already-applied migrations are skipped. You can also run `npm run db:migrate` by itself.
 
