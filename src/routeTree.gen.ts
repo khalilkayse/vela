@@ -29,6 +29,7 @@ import { Route as DashxAccessRouteImport } from './routes/dashx/access'
 import { Route as DashxMailRouteImport } from './routes/dashx/mail'
 import { Route as DashxOrdersRouteImport } from './routes/dashx/orders'
 import { Route as DashxPaymentsRouteImport } from './routes/dashx/payments'
+import { Route as DashxPayoutsRouteImport } from './routes/dashx/payouts'
 import { Route as DashxShopsRouteImport } from './routes/dashx/shops'
 import { Route as DashxStorageRouteImport } from './routes/dashx/storage'
 import { Route as DashxUsersRouteImport } from './routes/dashx/users'
@@ -36,11 +37,11 @@ import { Route as PayReturnRouteImport } from './routes/pay/return'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiFilesUploadRouteImport } from './routes/api/files/upload'
 import { Route as DashboardArticlesIndexRouteImport } from './routes/dashboard/articles.index'
+import { Route as DashboardArticlesIdRouteImport } from './routes/dashboard/articles.$id'
 import { Route as DashboardArticlesNewRouteImport } from './routes/dashboard/articles.new'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products.index'
 import { Route as DashboardProductsIdRouteImport } from './routes/dashboard/products.$id'
 import { Route as DashboardProductsNewRouteImport } from './routes/dashboard/products.new'
-import { Route as PayDemoOrderRefRouteImport } from './routes/pay/demo.$orderRef'
 import { Route as PaySuccessOrderRefRouteImport } from './routes/pay/success.$orderRef'
 import { Route as ApiFilesDTokenRouteImport } from './routes/api/files/d.$token'
 import { Route as ApiFilesPublicIdRouteImport } from './routes/api/files/public.$id'
@@ -145,6 +146,11 @@ const DashxPaymentsRoute = DashxPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => DashxRoute,
 } as any)
+const DashxPayoutsRoute = DashxPayoutsRouteImport.update({
+  id: '/payouts',
+  path: '/payouts',
+  getParentRoute: () => DashxRoute,
+} as any)
 const DashxShopsRoute = DashxShopsRouteImport.update({
   id: '/shops',
   path: '/shops',
@@ -180,6 +186,11 @@ const DashboardArticlesIndexRoute = DashboardArticlesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardArticlesRoute,
 } as any)
+const DashboardArticlesIdRoute = DashboardArticlesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DashboardArticlesRoute,
+} as any)
 const DashboardArticlesNewRoute = DashboardArticlesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -199,11 +210,6 @@ const DashboardProductsNewRoute = DashboardProductsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => DashboardProductsRoute,
-} as any)
-const PayDemoOrderRefRoute = PayDemoOrderRefRouteImport.update({
-  id: '/pay/demo/$orderRef',
-  path: '/pay/demo/$orderRef',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const PaySuccessOrderRefRoute = PaySuccessOrderRefRouteImport.update({
   id: '/pay/success/$orderRef',
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
+  '/dashx/payouts': typeof DashxPayoutsRoute
   '/dashx/shops': typeof DashxShopsRoute
   '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
@@ -248,10 +255,10 @@ export interface FileRoutesByFullPath {
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/$id': typeof DashboardArticlesIdRoute
   '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
-  '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/dashboard/articles/': typeof DashboardArticlesIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
+  '/dashx/payouts': typeof DashxPayoutsRoute
   '/dashx/shops': typeof DashxShopsRoute
   '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
@@ -280,10 +288,10 @@ export interface FileRoutesByTo {
   '/dashx': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/$id': typeof DashboardArticlesIdRoute
   '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
-  '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/dashboard/articles': typeof DashboardArticlesIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
@@ -309,6 +317,7 @@ export interface FileRoutesById {
   '/dashx/mail': typeof DashxMailRoute
   '/dashx/orders': typeof DashxOrdersRoute
   '/dashx/payments': typeof DashxPaymentsRoute
+  '/dashx/payouts': typeof DashxPayoutsRoute
   '/dashx/shops': typeof DashxShopsRoute
   '/dashx/storage': typeof DashxStorageRoute
   '/dashx/users': typeof DashxUsersRoute
@@ -318,10 +327,10 @@ export interface FileRoutesById {
   '/dashx/': typeof DashxIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/files/upload': typeof ApiFilesUploadRoute
+  '/dashboard/articles/$id': typeof DashboardArticlesIdRoute
   '/dashboard/articles/new': typeof DashboardArticlesNewRoute
   '/dashboard/products/$id': typeof DashboardProductsIdRoute
   '/dashboard/products/new': typeof DashboardProductsNewRoute
-  '/pay/demo/$orderRef': typeof PayDemoOrderRefRoute
   '/pay/success/$orderRef': typeof PaySuccessOrderRefRoute
   '/dashboard/articles/': typeof DashboardArticlesIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
@@ -348,6 +357,7 @@ export interface FileRouteTypes {
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
+    | '/dashx/payouts'
     | '/dashx/shops'
     | '/dashx/storage'
     | '/dashx/users'
@@ -357,10 +367,10 @@ export interface FileRouteTypes {
     | '/dashx/'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/$id'
     | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
-    | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/dashboard/articles/'
     | '/dashboard/products/'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
+    | '/dashx/payouts'
     | '/dashx/shops'
     | '/dashx/storage'
     | '/dashx/users'
@@ -389,10 +400,10 @@ export interface FileRouteTypes {
     | '/dashx'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/$id'
     | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
-    | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/dashboard/articles'
     | '/dashboard/products'
@@ -417,6 +428,7 @@ export interface FileRouteTypes {
     | '/dashx/mail'
     | '/dashx/orders'
     | '/dashx/payments'
+    | '/dashx/payouts'
     | '/dashx/shops'
     | '/dashx/storage'
     | '/dashx/users'
@@ -426,10 +438,10 @@ export interface FileRouteTypes {
     | '/dashx/'
     | '/api/auth/$'
     | '/api/files/upload'
+    | '/dashboard/articles/$id'
     | '/dashboard/articles/new'
     | '/dashboard/products/$id'
     | '/dashboard/products/new'
-    | '/pay/demo/$orderRef'
     | '/pay/success/$orderRef'
     | '/dashboard/articles/'
     | '/dashboard/products/'
@@ -448,7 +460,6 @@ export interface RootRouteChildren {
   PayReturnRoute: typeof PayReturnRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiFilesUploadRoute: typeof ApiFilesUploadRoute
-  PayDemoOrderRefRoute: typeof PayDemoOrderRefRoute
   PaySuccessOrderRefRoute: typeof PaySuccessOrderRefRoute
   ApiFilesDTokenRoute: typeof ApiFilesDTokenRoute
   ApiFilesPublicIdRoute: typeof ApiFilesPublicIdRoute
@@ -596,6 +607,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashxPaymentsRouteImport
       parentRoute: typeof DashxRoute
     }
+    '/dashx/payouts': {
+      id: '/dashx/payouts'
+      path: '/payouts'
+      fullPath: '/dashx/payouts'
+      preLoaderRoute: typeof DashxPayoutsRouteImport
+      parentRoute: typeof DashxRoute
+    }
     '/dashx/shops': {
       id: '/dashx/shops'
       path: '/shops'
@@ -645,6 +663,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardArticlesIndexRouteImport
       parentRoute: typeof DashboardArticlesRoute
     }
+    '/dashboard/articles/$id': {
+      id: '/dashboard/articles/$id'
+      path: '/$id'
+      fullPath: '/dashboard/articles/$id'
+      preLoaderRoute: typeof DashboardArticlesIdRouteImport
+      parentRoute: typeof DashboardArticlesRoute
+    }
     '/dashboard/articles/new': {
       id: '/dashboard/articles/new'
       path: '/new'
@@ -672,13 +697,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/products/new'
       preLoaderRoute: typeof DashboardProductsNewRouteImport
       parentRoute: typeof DashboardProductsRoute
-    }
-    '/pay/demo/$orderRef': {
-      id: '/pay/demo/$orderRef'
-      path: '/pay/demo/$orderRef'
-      fullPath: '/pay/demo/$orderRef'
-      preLoaderRoute: typeof PayDemoOrderRefRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/pay/success/$orderRef': {
       id: '/pay/success/$orderRef'
@@ -719,11 +737,13 @@ const UsernameRouteWithChildren = UsernameRoute._addFileChildren(
 )
 
 interface DashboardArticlesRouteChildren {
+  DashboardArticlesIdRoute: typeof DashboardArticlesIdRoute
   DashboardArticlesNewRoute: typeof DashboardArticlesNewRoute
   DashboardArticlesIndexRoute: typeof DashboardArticlesIndexRoute
 }
 
 const DashboardArticlesRouteChildren: DashboardArticlesRouteChildren = {
+  DashboardArticlesIdRoute: DashboardArticlesIdRoute,
   DashboardArticlesNewRoute: DashboardArticlesNewRoute,
   DashboardArticlesIndexRoute: DashboardArticlesIndexRoute,
 }
@@ -773,6 +793,7 @@ interface DashxRouteChildren {
   DashxMailRoute: typeof DashxMailRoute
   DashxOrdersRoute: typeof DashxOrdersRoute
   DashxPaymentsRoute: typeof DashxPaymentsRoute
+  DashxPayoutsRoute: typeof DashxPayoutsRoute
   DashxShopsRoute: typeof DashxShopsRoute
   DashxStorageRoute: typeof DashxStorageRoute
   DashxUsersRoute: typeof DashxUsersRoute
@@ -784,6 +805,7 @@ const DashxRouteChildren: DashxRouteChildren = {
   DashxMailRoute: DashxMailRoute,
   DashxOrdersRoute: DashxOrdersRoute,
   DashxPaymentsRoute: DashxPaymentsRoute,
+  DashxPayoutsRoute: DashxPayoutsRoute,
   DashxShopsRoute: DashxShopsRoute,
   DashxStorageRoute: DashxStorageRoute,
   DashxUsersRoute: DashxUsersRoute,
@@ -803,7 +825,6 @@ const rootRouteChildren: RootRouteChildren = {
   PayReturnRoute: PayReturnRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiFilesUploadRoute: ApiFilesUploadRoute,
-  PayDemoOrderRefRoute: PayDemoOrderRefRoute,
   PaySuccessOrderRefRoute: PaySuccessOrderRefRoute,
   ApiFilesDTokenRoute: ApiFilesDTokenRoute,
   ApiFilesPublicIdRoute: ApiFilesPublicIdRoute,

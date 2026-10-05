@@ -11,40 +11,40 @@ If you are a coding agent contributing to this repo, start with [CONTRIBUTING.md
 - **Shop, Studio, or Page layouts** — a catalog of covers and prices, a profile with links then products, or a single column of buttons.
 - **Products, services, and free links** — title, thumbnail, gallery, description, price, and a delivery note unlocked after payment.
 - **Private file delivery** — merchants upload files to a platform S3/R2 bucket. Only a paid order can mint a short signed download.
-- **Sifalo Pay checkout** — buyers pay on Sifalo Pay. Merchants get API username and password from [sifalopay.com](https://sifalopay.com). Endpoints and optional platform credentials are set in `/dashx`. Individual shops can be granted their own keys even while the platform collects for everyone else.
+- **Platform-wide Sifalo Pay checkout** — one Sifalo Pay merchant account (set in `/dashx/payments`, sandbox or live) runs checkout for every shop. Kart takes a percent-plus-fixed fee per sale and tracks each shop's balance; sellers add payout details (mobile wallet or bank account) in Settings, and the platform owner records payouts in `/dashx/payouts`. Sellers never connect their own Sifalo Pay account.
 - **Country-aware accounts** — signup country and last login are recorded (Cloudflare `CF-IPCountry` and similar headers). New shops inherit that country. `/dashx/access` can block sign-ups from selected countries.
 - **Social login** — Google, GitHub, X, Discord, Facebook, Apple, Microsoft. A button is shown **only** when that provider’s env vars are set. Otherwise email/password only.
-- **Demo checkout** — if nobody has connected Sifalo Pay yet, buyers can still walk the success and delivery flow without a real charge.
 - **Discover** — public shops listed for browsing.
 - **Unique usernames** — every shop is `yoursite.com/username`. Reserved names (routes plus extras you add in `/dashx/access`) cannot be claimed. The shop form only says the username is not available.
 
-Try the seeded studio at `/maya`.
+The seeded studio at `/maya` ships unpublished — it only existed so the live preview had something to show without signing in, and a demo shop must never be able to take a real payment on the platform-wide merchant account.
 
 ## Sifalo Pay flow
 
-Merchants copy their API username and password from [sifalopay.com](https://sifalopay.com) (or the platform collects with its own keys).
+One Sifalo Pay merchant account (sandbox or live, set in `/dashx/payments`) runs checkout for every shop on this instance. Sellers never paste their own API credentials.
 
 1. Buyer submits name and email on a product page.
-2. Kart `POST`s the **gateway** with HTTP Basic Auth (`API username:API password`) and `{ amount, gateway: "checkout", currency: "USD", return_url, order_id }`.
+2. Kart `POST`s the **gateway** with HTTP Basic Auth (the platform's API username/key for the active mode) and `{ amount, gateway: "checkout", currency: "USD", return_url, order_id }`.
 3. Buyer is redirected to the **checkout page** `?key=&token=`.
 4. Sifalo Pay returns them to `/pay/return?order_id=…&sid=…`.
-5. Kart `POST`s the **verify** URL with `{ sid }` (no Basic Auth). Success is `status: "success"` or `code: 601`.
-6. Paid orders unlock the delivery note, optional URL, and any private files. Receipts email when SMTP is set.
+5. Kart `POST`s the **verify** URL with `{ sid }` (no Basic Auth). An order is marked paid only when `status` is exactly `"success"` **and** `code` is `601`, and the verified amount matches the order — this also blocks a sid from one order being replayed against another.
+6. Paid orders unlock the delivery note, optional URL, and any private files. Receipts email when SMTP is set. The platform fee is deducted into `net_amount`, which accrues to the seller's balance until a payout is recorded.
 
-Default **production** hosts (live keys only):
+Hosts are fixed per environment (not editable):
 
-| Role | URL |
-|---|---|
-| Gateway | `https://api.sifalopay.com/gateway/` |
-| Verify | `https://api.sifalopay.com/gateway/verify.php` |
-| Checkout | `https://pay.sifalo.com/checkout/` |
+| Role | Live | Sandbox |
+|---|---|---|
+| Gateway | `https://api.sifalopay.com/gateway/` | `https://spay-api.sifalo.net/gateway/` |
+| Verify | `https://api.sifalopay.com/gateway/verify.php` | `https://spay-api.sifalo.net/gateway/verify.php` |
+| Checkout | `https://pay.sifalo.com/checkout/` | `https://pay.sifalo.net/checkout/` |
 
-**Staging** hosts (staging keys only): `https://spay-api.sifalo.net/gateway/`, `https://pay.sifalo.net/checkout/`. Switch them in `/dashx/payments`. Gateway timeout is 120 seconds. There are no webhooks.
+Switch the active mode, and set sandbox/live credentials, in `/dashx/payments`. Gateway timeout is 120 seconds. There are no webhooks.
 
 **Who gets paid**
 
-- Platform-wide collection off → each shop uses the keys it pasted in Settings.
-- Platform-wide collection on → Kart uses the platform merchant, **except** shops marked **Allow own Sifalo keys** in `/dashx/shops`. Those shops keep (or connect) their own API user.
+Every sale runs through the platform's merchant account. The platform fee (percent + fixed, set in `/dashx/payments`) is subtracted from the sale into `net_amount`. `/dashx/payouts` shows each shop's running balance; the operator sends the money by hand (to the mobile wallet or bank account the seller set in Settings → Payouts) and records it there, which clears the balance.
+
+Without active credentials for the current mode, paid checkout is disabled platform-wide (free items and links still work) — there is no demo/fallback checkout.
 
 ## File storage
 
@@ -60,14 +60,15 @@ Not linked from the merchant UI. First deploy prints `owner@shop.sifalo.cloud` a
 
 | Page | What it configures |
 |---|---|
-| `/dashx` | Platform stats |
-| `/dashx/shops` | Publish / unpublish, allow own Sifalo keys, clear keys |
-| `/dashx/orders` | All orders |
+| `/dashx` | Platform stats, including gross sales, fees earned, and balance owed to sellers |
+| `/dashx/shops` | Publish / unpublish |
+| `/dashx/payouts` | Each shop's balance; record a payout and see its history |
+| `/dashx/orders` | All orders, with fee/net and a re-check-payment action on pending ones |
 | `/dashx/users` | Accounts, last login, signup country, disable |
 | `/dashx/access` | Default country, blocked signup countries |
 | `/dashx/mail` | SMTP (confirmation, reset, welcome) |
 | `/dashx/storage` | S3/R2 credentials |
-| `/dashx/payments` | Sifalo Pay hosts + optional platform merchant |
+| `/dashx/payments` | Sifalo Pay sandbox/live credentials and the platform fee |
 
 ## Social login
 

@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { DashboardPage } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,14 +17,16 @@ export const Route = createFileRoute("/dashboard/orders")({ component: OrdersPag
 
 function OrdersPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
 
   async function reload() {
+    setLoadError(null);
     setOrders(await listMyOrders());
   }
 
   useEffect(() => {
-    reload().catch(() => setOrders([]));
+    reload().catch((error) => setLoadError(errMsg(error)));
   }, []);
 
   async function onFulfill(order: Order) {
@@ -45,7 +47,9 @@ function OrdersPage() {
       title="Orders"
       description="Every checkout — mark services as fulfilled when you have delivered them."
     >
-      {orders === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => void reload().catch((error) => setLoadError(errMsg(error)))} />
+      ) : orders === null ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : orders.length === 0 ? (
         <EmptyState
@@ -54,12 +58,13 @@ function OrdersPage() {
         />
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-[0.12em] text-muted">
               <tr>
                 <th className="px-5 py-3 font-medium">Order</th>
                 <th className="px-5 py-3 font-medium">Customer</th>
                 <th className="px-5 py-3 font-medium">Amount</th>
+                <th className="px-5 py-3 font-medium">You earn</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Fulfillment</th>
                 <th className="px-5 py-3 font-medium">Date</th>
@@ -84,6 +89,9 @@ function OrdersPage() {
                     {order.paymentType ? (
                       <span className="mt-0.5 block text-xs font-normal text-muted">{order.paymentType}</span>
                     ) : null}
+                  </td>
+                  <td className="px-5 py-4 tabular-nums text-muted">
+                    {formatPrice(order.netAmount, order.currency)}
                   </td>
                   <td className="px-5 py-4">
                     <OrderBadge order={order} />

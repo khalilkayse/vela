@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
+import { normalizeUrl } from "@/lib/utils";
 import { mapBlock, type BlockRow, type ShopRow } from "./map";
 
 export const listMyBlocks = createServerFn({ method: "GET" })
@@ -20,8 +21,12 @@ export const saveBlock = createServerFn({ method: "POST" })
     const title = input.title.trim();
     if (!title) throw new Error("Give this block a title.");
     const kind = input.kind === "heading" ? "heading" : "link";
-    const url = (input.url ?? "").trim();
-    if (kind === "link" && !url) throw new Error("Links need a URL.");
+    const rawUrl = (input.url ?? "").trim();
+    const url = rawUrl ? normalizeUrl(rawUrl) : null;
+    if (kind === "link") {
+      if (!rawUrl) throw new Error("Links need a URL.");
+      if (!url) throw new Error("Enter a valid URL.");
+    }
     return {
       id: input.id,
       kind,

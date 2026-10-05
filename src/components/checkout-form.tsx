@@ -14,9 +14,11 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
   const [busy, setBusy] = useState(false);
   const isFree = product.kind === "link" || product.price <= 0;
   const isArticle = product.kind === "article";
+  const checkoutUnavailable = !isFree && !shop.checkoutLive;
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (checkoutUnavailable) return;
     setBusy(true);
     try {
       const result = await startCheckout({
@@ -74,23 +76,27 @@ export function CheckoutForm({ product, shop }: { product: Product; shop: Shop }
           </span>
         </label>
       ) : null}
-      <Button type="submit" className="w-full" size="lg" disabled={busy}>
-        {busy
-          ? "Preparing checkout…"
-          : isFree
-            ? product.buttonLabel || (isArticle ? "Read" : "Get it free")
-            : `${product.buttonLabel || (isArticle ? "Unlock" : "Buy now")} · ${formatPrice(product.price, product.currency)}`}
+      <Button type="submit" className="w-full" size="lg" disabled={busy || checkoutUnavailable}>
+        {checkoutUnavailable
+          ? "Checkout opens soon"
+          : busy
+            ? "Preparing checkout…"
+            : isFree
+              ? product.buttonLabel || (isArticle ? "Read" : "Get it free")
+              : `${product.buttonLabel || (isArticle ? "Unlock" : "Buy now")} · ${formatPrice(product.price, product.currency)}`}
       </Button>
       <p className="text-center text-xs leading-relaxed text-muted">
-        {isFree
-          ? isArticle
-            ? "This article is free to read."
-            : "No payment required."
-          : shop.checkoutLive
+        {checkoutUnavailable
+          ? "Checkout isn't open on this shop yet. Please check back shortly."
+          : isFree
             ? isArticle
-              ? `You will complete payment on Sifalo Pay. Then you can read it on ${shop.displayName}'s page.`
-              : `You will complete payment on Sifalo Pay. Funds go to ${shop.displayName}.`
-            : "This shop has not connected Sifalo Pay yet. Checkout will run in demo mode so you can preview the flow."}
+              ? "This article is free to read."
+              : "No payment required."
+            : shop.testMode
+              ? "Test mode: Sifalo Pay sandbox, no real charge."
+              : isArticle
+                ? "Secure payment via Sifalo Pay. Then you can read it on this page."
+                : "Secure payment via Sifalo Pay: EVC, ZAAD, eDahab, Premier Wallet, or card."}
       </p>
     </form>
   );

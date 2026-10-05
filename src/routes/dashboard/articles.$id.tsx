@@ -6,11 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getMyProduct } from "@/lib/server/products";
 import type { Product } from "@/lib/types";
 
-export const Route = createFileRoute("/dashboard/products/$id")({
-  component: EditProduct,
+export const Route = createFileRoute("/dashboard/articles/$id")({
+  component: EditArticle,
 });
 
-function EditProduct() {
+function EditArticle() {
   const { id } = Route.useParams();
   const [product, setProduct] = useState<Product | null | undefined>(undefined);
 
@@ -22,15 +22,15 @@ function EditProduct() {
 
   if (product === undefined) {
     return (
-      <DashboardPage title="Edit product">
+      <DashboardPage title="Edit article">
         <Skeleton className="h-96 rounded-xl" />
       </DashboardPage>
     );
   }
-  if (!product) {
+  if (!product || product.kind !== "article") {
     return (
       <DashboardPage title="Not found">
-        <p className="text-sm text-muted">This product is gone, or it is not yours.</p>
+        <p className="text-sm text-muted">This article is gone, or it is not yours.</p>
       </DashboardPage>
     );
   }

@@ -18,6 +18,8 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMyShop } from "@/lib/server/shops";
 import type { Shop } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { errMsg } from "@/lib/errors";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type ShopCtx = {
@@ -43,7 +45,12 @@ const NAV = [
   { to: "/dashboard/settings", label: "Settings", icon: Settings, exact: false },
 ] as const;
 
-const BOTTOM_NAV = NAV.filter((item) => item.to !== "/dashboard/articles");
+// The bottom nav only has room for a few icons. The rest (Page, Settings,
+// sign-out) live behind "Menu", which opens the same drawer as the header's
+// hamburger button.
+const BOTTOM_NAV = NAV.filter(
+  (item) => item.to !== "/dashboard/page" && item.to !== "/dashboard/settings",
+);
 
 function navActive(pathname: string, to: string, exact: boolean) {
   if (exact) return pathname === to;
@@ -53,8 +60,10 @@ function navActive(pathname: string, to: string, exact: boolean) {
 export function DashboardShell() {
   const { user, isPending } = useCurrentUserState();
   const [shop, setShop] = useState<Shop | null | undefined>(undefined);
+  const [shopError, setShopError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const userId = user?.id;
 
   async function reloadShop() {
     const next = await getMyShop();
@@ -62,28 +71,66 @@ export function DashboardShell() {
   }
 
   useEffect(() => {
-    if (!user) return;
+    // `user` itself is a new object on every render of `useCurrentUserState`
+    // even when the session hasn't changed — depending on it directly would
+    // refetch the shop (and re-render every consumer of `useShop()`) forever.
+    if (!userId) return;
     let cancelled = false;
+    setShopError(null);
     getMyShop()
       .then((next) => {
         if (!cancelled) setShop(next);
       })
-      .catch(() => {
-        if (!cancelled) setShop(null);
+      .catch((error) => {
+        if (!cancelled) setShopError(errMsg(error));
       });
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  if (isPending || (user && shop === undefined)) {
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
+  if (isPending || (userId && shop === undefined && !shopError)) {
     return <DashboardSkeleton />;
   }
   if (!user) return <RedirectToSignIn />;
+  if (shopError) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-bg px-4">
+        <div className="max-w-sm text-center">
+          <p className="text-sm text-danger">Could not load your shop: {shopError}</p>
+          <Button
+            variant="secondary"
+            className="mt-4"
+            onClick={() => {
+              setShopError(null);
+              setShop(undefined);
+              void reloadShop().catch((error) => setShopError(errMsg(error)));
+            }}
+          >
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
   if (!shop) return <Navigate to="/onboarding" />;
 
   return (
@@ -156,6 +203,14 @@ export function DashboardShell() {
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium text-muted"
+          >
+            <Menu className="size-5" />
+            Menu
+          </button>
         </nav>
 
         {menuOpen ? (
@@ -179,11 +234,14 @@ export function DashboardShell() {
                 </button>
               </div>
               <ShopBadge shop={shop} />
-              <nav className="flex flex-col gap-0.5 px-3 py-4">
+              <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
                 {NAV.map((item) => (
                   <NavLink key={item.to} {...item} pathname={pathname} />
                 ))}
               </nav>
+              <div className="min-w-0 border-t border-border p-4">
+                <UserButton />
+              </div>
             </div>
           </div>
         ) : null}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSql } from "@/lib/db";
-import { getObjectBytes } from "@/lib/storage";
+import { contentDisposition, getObjectBytes } from "@/lib/storage";
 
 export const Route = createFileRoute("/api/files/public/$id")({
   server: {
@@ -41,7 +41,7 @@ async function handlePublic({ params }: { params: { id: string } }) {
     "Cache-Control": "public, max-age=86400",
   };
   if (!inline) {
-    headers["Content-Disposition"] = `attachment; filename="${file.filename.replace(/"/g, "")}"`;
+    headers["Content-Disposition"] = contentDisposition(file.filename);
   }
 
   const blob = asBytes(file.data);

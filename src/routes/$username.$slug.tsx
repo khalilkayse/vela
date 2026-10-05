@@ -1,14 +1,17 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, Lock } from "lucide-react";
+import { useEffect } from "react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, ExternalLink, Lock } from "lucide-react";
 import { CheckoutForm } from "@/components/checkout-form";
 import { ProductCover } from "@/components/product-cover";
 import { RichHtml } from "@/components/rich-html";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/card";
-import { kindLabel } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
+import { APP_NAME, kindLabel } from "@/lib/constants";
 import { htmlToPlain } from "@/lib/html";
 import { getPublicProduct } from "@/lib/server/products";
 import { formatPrice } from "@/lib/utils";
+import { readArticleAccess, writeArticleAccess } from "@/lib/article-access";
 
 type ProductSearch = { access?: string };
 
@@ -21,11 +24,54 @@ export const Route = createFileRoute("/$username/$slug")({
     getPublicProduct({
       data: { username: params.username, slug: params.slug, access: deps.access },
     }),
+  head: ({ loaderData }) => {
+    if (!loaderData) return {};
+    const { shop, product } = loaderData;
+    const title = `${product.title} · ${shop.displayName}`;
+    const description =
+      htmlToPlain(product.description) || `${kindLabel(product.kind)} on ${shop.displayName}'s ${APP_NAME} page.`;
+    const meta = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+    ];
+    if (product.coverUrl) meta.push({ property: "og:image", content: product.coverUrl });
+    return { meta };
+  },
   component: ProductPage,
 });
 
 function ProductPage() {
   const data = Route.useLoaderData();
+  const { access } = Route.useSearch();
+  const navigate = useNavigate();
+  const params = Route.useParams();
+
+  // A paid article unlocked once (via the ?access= link from email or the
+  // success page) should stay unlocked on this device when the buyer comes
+  // back without that query param — e.g. from a bookmark or the storefront.
+  useEffect(() => {
+    if (!data) return;
+    const { product } = data;
+    if (product.kind !== "article" || !product.paywalled) return;
+    if (access) {
+      if (!product.locked) writeArticleAccess(params.username, params.slug, access);
+      return;
+    }
+    const saved = readArticleAccess(params.username, params.slug);
+    if (saved) {
+      void navigate({
+        to: "/$username/$slug",
+        params,
+        search: { access: saved },
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the loaded product or access param changes
+  }, [data, access, params.username, params.slug]);
+
   if (!data) {
     return (
       <div className="min-h-screen bg-bg">
@@ -39,9 +85,9 @@ function ProductPage() {
   }
   const { shop, product } = data;
   const isArticle = product.kind === "article";
-  const isFree = product.kind === "link" || product.price <= 0;
-  const showCheckout = !isArticle || product.locked;
-  const dek = htmlToPlain(product.description);
+  const isLink = product.kind === "link";
+  const isFree = isLink || product.price <= 0;
+  const showCheckout = !isLink && (!isArticle || product.locked);
 
   return (
     <div className="min-h-screen bg-bg">
@@ -138,12 +184,20 @@ function ProductPage() {
                     <div className="mt-5">
                       <RichHtml html={product.description} />
                     </div>
-                  ) : dek ? (
-                    <p className="mt-5 text-sm leading-relaxed text-muted">{dek}</p>
                   ) : null}
                 </>
               )}
-              {showCheckout ? (
+              {isLink ? (
+                <div className="mt-8 rounded-xl border border-border bg-surface p-5 shadow-soft">
+                  <Button asChild className="w-full" size="lg">
+                    <a href={product.deliveryUrl ?? "#"} target="_blank" rel="noreferrer">
+                      {product.buttonLabel || "Open"}
+                      <ExternalLink />
+                    </a>
+                  </Button>
+                  <p className="mt-3 text-center text-xs text-muted">Free. Opens in a new tab.</p>
+                </div>
+              ) : showCheckout ? (
                 <div className="mt-8 rounded-xl border border-border bg-surface p-5 shadow-soft">
                   <CheckoutForm product={product} shop={shop} />
                 </div>

@@ -1,7 +1,14 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 function secret(): string {
-  return process.env.BETTER_AUTH_SECRET?.trim() || "vela-dev-download-secret";
+  const configured = process.env.BETTER_AUTH_SECRET?.trim();
+  if (configured) return configured;
+  // A hard-coded fallback would let anyone who reads the source code forge a
+  // download grant for any order. Only acceptable with no real database.
+  if (process.env.DATABASE_URL?.trim()) {
+    throw new Error("BETTER_AUTH_SECRET must be set to sign download links on a real database.");
+  }
+  return "vela-dev-download-secret";
 }
 
 export type DownloadGrant = {

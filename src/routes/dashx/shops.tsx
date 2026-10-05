@@ -4,30 +4,27 @@ import { toast } from "sonner";
 import { AdminPage } from "@/components/dashx-shell";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  clearShopSifalo,
-  listPlatformShops,
-  setShopAllowOwnSifalo,
-  setShopPublished,
-  type AdminShop,
-} from "@/lib/server/admin";
+import { listPlatformShops, setShopPublished, type AdminShop } from "@/lib/server/admin";
 import { formatCountry } from "@/lib/geo";
+import { formatPrice } from "@/lib/utils";
 import { errMsg } from "@/lib/errors";
 
 export const Route = createFileRoute("/dashx/shops")({ component: AdminShops });
 
 function AdminShops() {
   const [shops, setShops] = useState<AdminShop[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function reload() {
+    setLoadError(null);
     setShops(await listPlatformShops());
   }
 
   useEffect(() => {
-    reload().catch(() => setShops([]));
+    reload().catch((error) => setLoadError(errMsg(error)));
   }, []);
 
   async function run(key: string, work: () => Promise<unknown>) {
@@ -45,9 +42,11 @@ function AdminShops() {
   return (
     <AdminPage
       title="Shops"
-      description="Unpublish a storefront, grant a shop its own Sifalo Pay keys while the platform still collects for everyone else, or clear saved keys."
+      description="Unpublish a storefront, or see what's owed before recording a payout under Payouts."
     >
-      {shops === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => void reload().catch((error) => setLoadError(errMsg(error)))} />
+      ) : shops === null ? (
         <Skeleton className="h-48 rounded-xl" />
       ) : shops.length === 0 ? (
         <EmptyState title="No shops yet" body="When someone finishes onboarding, their studio will show up here." />
@@ -62,10 +61,9 @@ function AdminShops() {
                     <Badge tone={shop.published ? "success" : "neutral"}>
                       {shop.published ? "Live" : "Hidden"}
                     </Badge>
-                    {shop.hasSifaloCredentials ? (
-                      <Badge tone={shop.sifaloConnected ? "primary" : "warn"}>Own keys</Badge>
+                    {shop.balanceOwed > 0 ? (
+                      <Badge tone="warn">{formatPrice(shop.balanceOwed)} owed</Badge>
                     ) : null}
-                    {shop.allowOwnSifalo ? <Badge tone="primary">May use own Sifalo</Badge> : null}
                   </div>
                   <p className="mt-1 truncate text-sm text-muted">
                     /{shop.username}
@@ -94,42 +92,6 @@ function AdminShops() {
                     {shop.published ? "Unpublish" : "Publish"}
                   </Button>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-                <Button
-                  variant={shop.allowOwnSifalo ? "secondary" : "ghost"}
-                  size="sm"
-                  disabled={busy === `own-${shop.id}`}
-                  onClick={() =>
-                    void run(`own-${shop.id}`, async () => {
-                      await setShopAllowOwnSifalo({
-                        data: { shopId: shop.id, allow: !shop.allowOwnSifalo },
-                      });
-                      toast.success(
-                        shop.allowOwnSifalo
-                          ? "This shop will use platform credentials when platform-wide collection is on."
-                          : "This shop may connect its own Sifalo Pay keys.",
-                      );
-                    })
-                  }
-                >
-                  {shop.allowOwnSifalo ? "Revoke own keys" : "Allow own Sifalo keys"}
-                </Button>
-                {shop.hasSifaloCredentials ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={busy === `clr-${shop.id}`}
-                    onClick={() =>
-                      void run(`clr-${shop.id}`, async () => {
-                        await clearShopSifalo({ data: shop.id });
-                        toast.success("Shop Sifalo keys cleared.");
-                      })
-                    }
-                  >
-                    Clear keys
-                  </Button>
-                ) : null}
               </div>
             </Card>
           ))}

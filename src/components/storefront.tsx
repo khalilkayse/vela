@@ -195,7 +195,13 @@ export function Storefront({
           </section>
         ) : null}
 
-        {catalog.length === 0 && links.length === 0 && featuredArticles.length === 0 && blocks.length === 0 ? (
+        {catalog.length === 0 &&
+        links.length === 0 &&
+        featuredArticles.length === 0 &&
+        // Blocks only render for non-Shop layouts (see the section above) —
+        // a Shop-layout page with blocks but no catalog must still count as
+        // empty, or it renders as a blank page with no explanation.
+        (blocks.length === 0 || isShop) ? (
           <p className="mt-12 text-center text-sm text-muted">Nothing listed yet.</p>
         ) : null}
 

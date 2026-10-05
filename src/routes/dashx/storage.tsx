@@ -21,10 +21,12 @@ function DashxStorage() {
   const [hasSecret, setHasSecret] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setLoadError(null);
     getStorageSettings()
       .then((s3) => {
         setEndpoint(s3.endpoint);
@@ -37,8 +39,13 @@ function DashxStorage() {
         setConfigured(s3.configured);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
-  }, []);
+      .catch((error) => {
+        setLoadError(errMsg(error));
+        setLoaded(true);
+      });
+  }
+
+  useEffect(load, []);
 
   async function onSave(event: React.FormEvent) {
     event.preventDefault();
@@ -76,6 +83,14 @@ function DashxStorage() {
       title="Storage"
       description="Private S3-compatible bucket for merchant uploads. Buyers never see the object key — paid orders get a short signed download."
     >
+      {loadError ? (
+        <Card className="mb-6 border-danger/30 bg-danger/5 p-5">
+          <p className="text-sm text-danger">Could not load storage settings: {loadError}</p>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={load}>
+            Try again
+          </Button>
+        </Card>
+      ) : null}
       <Card className="mb-6 p-5">
         <p className="text-sm leading-relaxed text-muted">
           Keep the bucket private. Uploads go through the app; downloads go{" "}
@@ -139,10 +154,10 @@ function DashxStorage() {
             Force path-style URLs (on for R2 and MinIO)
           </label>
           <div className="flex flex-wrap gap-3 sm:col-span-2">
-            <Button type="submit" disabled={!loaded || saving}>
+            <Button type="submit" disabled={!loaded || Boolean(loadError) || saving}>
               {saving ? "Saving…" : "Save storage"}
             </Button>
-            <Button type="button" variant="secondary" disabled={!loaded || testing} onClick={() => void onTest()}>
+            <Button type="button" variant="secondary" disabled={!loaded || Boolean(loadError) || testing} onClick={() => void onTest()}>
               {testing ? "Checking…" : configured ? "Test connection" : "Save, then test"}
             </Button>
           </div>

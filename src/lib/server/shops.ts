@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
-import { BRAND_HEX, type ShopLayout } from "@/lib/constants";
-import { initials } from "@/lib/utils";
+import { BRAND_HEX, PAYOUT_METHODS, type PayoutMethod, type ShopLayout } from "@/lib/constants";
+import { initials, normalizeUrl } from "@/lib/utils";
 import {
   assertUsername,
   normalizeUsername,
@@ -12,14 +12,20 @@ import {
 } from "@/lib/server/usernames";
 import {
   decorateShop,
+  decoratePublicShop,
   mapBlock,
-  mapProduct,
-  mapShop,
+  mapPublicProduct,
+  mapPublicShop,
   type ShopRow,
   type ProductRow,
   type BlockRow,
 } from "./map";
 import { publicMediaPath } from "@/lib/upload";
+
+function asPayoutMethod(value: unknown): PayoutMethod | null {
+  const method = PAYOUT_METHODS.find((option) => option.id === value);
+  return method ? method.id : null;
+}
 
 export const getMyShop = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -45,7 +51,7 @@ export const getPublicShop = createServerFn({ method: "GET" })
     const shops = await sql<ShopRow>`select * from shops where username = ${username} and published = true limit 1`;
     const shopRow = shops[0];
     if (!shopRow) return null;
-    const shop = await decorateShop(shopRow);
+    const shop = await decoratePublicShop(shopRow);
     const products = await sql<ProductRow>`
       select * from products
       where shop_id = ${shop.id} and published = true
@@ -58,7 +64,7 @@ export const getPublicShop = createServerFn({ method: "GET" })
     `;
     const mapped = [];
     for (const row of products) {
-      mapped.push(mapProduct(row, { gallery: await productGallery(row.id) }));
+      mapped.push(mapPublicProduct(row, { gallery: await productGallery(row.id) }));
     }
     return {
       shop,
@@ -72,7 +78,7 @@ export const listPublishedShops = createServerFn({ method: "GET" }).handler(asyn
   const rows = await sql<ShopRow>`
     select * from shops where published = true order by created_at desc limit 24
   `;
-  return rows.map((row) => mapShop(row));
+  return rows.map((row) => mapPublicShop(row));
 });
 
 export const usernameAvailable = createServerFn({ method: "POST" })
@@ -166,12 +172,12 @@ export const updateShop = createServerFn({ method: "POST" })
       data.layout === "shop" || data.layout === "links" || data.layout === "hybrid"
         ? data.layout
         : shop.layout;
-    const websiteUrl = typeof data.websiteUrl === "string" ? emptyToNull(data.websiteUrl) : shop.website_url;
+    const websiteUrl = typeof data.websiteUrl === "string" ? normalizeUrl(data.websiteUrl) : shop.website_url;
     const instagramUrl =
-      typeof data.instagramUrl === "string" ? emptyToNull(data.instagramUrl) : shop.instagram_url;
-    const xUrl = typeof data.xUrl === "string" ? emptyToNull(data.xUrl) : shop.x_url;
-    const youtubeUrl = typeof data.youtubeUrl === "string" ? emptyToNull(data.youtubeUrl) : shop.youtube_url;
-    const tiktokUrl = typeof data.tiktokUrl === "string" ? emptyToNull(data.tiktokUrl) : shop.tiktok_url;
+      typeof data.instagramUrl === "string" ? normalizeUrl(data.instagramUrl) : shop.instagram_url;
+    const xUrl = typeof data.xUrl === "string" ? normalizeUrl(data.xUrl) : shop.x_url;
+    const youtubeUrl = typeof data.youtubeUrl === "string" ? normalizeUrl(data.youtubeUrl) : shop.youtube_url;
+    const tiktokUrl = typeof data.tiktokUrl === "string" ? normalizeUrl(data.tiktokUrl) : shop.tiktok_url;
     const published = typeof data.published === "boolean" ? data.published : shop.published;
     const coverStyle = typeof data.coverStyle === "string" ? data.coverStyle : shop.cover_style;
     const country =
@@ -217,74 +223,32 @@ export const updateShop = createServerFn({ method: "POST" })
     return decorateShop(rows[0]);
   });
 
-export const saveSifaloCredentials = createServerFn({ method: "POST" })
+export const updatePayoutDetails = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: { apiKey: string; apiPassword: string }) => {
-    const apiKey = input.apiKey.trim();
-    const apiPassword = input.apiPassword.trim();
-    if (!apiKey || !apiPassword) throw new Error("Both API username and password are required.");
-    return { apiKey, apiPassword };
-  })
+  .validator((input: { method: string; account: string; name: string }) => ({
+    method: asPayoutMethod(input.method),
+    account: input.account.trim().slice(0, 120),
+    name: input.name.trim().slice(0, 80),
+  }))
   .handler(async ({ context, data }) => {
-    const { sifaloTestCredentials } = await import("@/lib/sifalo.server");
-    const test = await sifaloTestCredentials(data.apiKey, data.apiPassword);
     const sql = await getSql();
-    const shops = await sql<{ id: number }>`select id from shops where user_id = ${context.userId} limit 1`;
-    if (!shops[0]) throw new Error("Create a shop first.");
-    const policy = await shopPayPolicy(context.userId);
-    if (!policy.canConnectOwnKeys) {
-      throw new Error("This shop is not allowed to connect its own Sifalo Pay keys.");
-    }
-    await sql`
+    const rows = await sql<ShopRow>`
       update shops set
-        sifalo_api_key = ${data.apiKey},
-        sifalo_api_password = ${data.apiPassword},
-        sifalo_connected = ${test.ok},
+        payout_method = ${data.method},
+        payout_account = ${data.account},
+        payout_name = ${data.name},
         updated_at = now()
       where user_id = ${context.userId}
+      returning *
     `;
-    return test;
-  });
-
-export const disconnectSifalo = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    const sql = await getSql();
-    await sql`
-      update shops set
-        sifalo_api_key = null,
-        sifalo_api_password = null,
-        sifalo_connected = false,
-        updated_at = now()
-      where user_id = ${context.userId}
-    `;
-    return { ok: true };
+    if (!rows[0]) throw new Error("Create a shop first.");
+    return decorateShop(rows[0]);
   });
 
 function emptyToNull(value: string): string | null {
   const t = value.trim();
   return t ? t : null;
 }
-
-async function shopPayPolicy(userId: string) {
-  const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
-  const platform = await getSifaloPlatformConfig();
-  const sql = await getSql();
-  const shops = await sql<{ allow_own_sifalo: boolean | null }>`
-    select allow_own_sifalo from shops where user_id = ${userId} limit 1
-  `;
-  const allowOwnKeys = Boolean(shops[0]?.allow_own_sifalo);
-  const platformCollects = platform.usePlatformCredentials && Boolean(platform.apiKey);
-  return {
-    platformCollects,
-    allowOwnKeys,
-    canConnectOwnKeys: !platformCollects || allowOwnKeys,
-  };
-}
-
-export const getMyPayPolicy = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => shopPayPolicy(context.userId));
 
 async function sendShopWelcome(userId: string, username: string, displayName: string) {
   try {
@@ -303,7 +267,7 @@ async function sendShopWelcome(userId: string, username: string, displayName: st
         "Your shop is ready",
         `<p style="line-height:1.6">${escapeHtml(displayName)} is on Kart. Share this link:</p>
          <p><a href="${escapeHtml(url)}" style="color:${BRAND_HEX.primary}">${escapeHtml(url)}</a></p>
-         <p style="line-height:1.6;color:${BRAND_HEX.muted}">Connect Sifalo Pay in settings when you want live checkout. Get keys at sifalopay.com.</p>`,
+         <p style="line-height:1.6;color:${BRAND_HEX.muted}">Checkout is already live — add your payout details in settings so Kart knows where to send what you earn.</p>`,
       ),
     });
   } catch (err) {

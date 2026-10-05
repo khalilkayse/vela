@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
@@ -21,21 +21,34 @@ function PageEditor() {
   const [url, setUrl] = useState("");
   const [kind, setKind] = useState<"link" | "heading">("link");
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editUrl, setEditUrl] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function reload() {
+    setLoadError(null);
     const rows = await listMyBlocks();
     setBlocks(rows);
   }
 
   useEffect(() => {
-    reload().catch(() => setBlocks([]));
+    reload().catch((error) => setLoadError(errMsg(error)));
   }, []);
+
+  function selectKind(next: "link" | "heading") {
+    setKind(next);
+    // The URL field disappears for headings — clear it so switching back and
+    // forth can't silently save a stale URL from before the switch.
+    if (next === "heading") setUrl("");
+  }
 
   async function onAdd(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      await saveBlock({ data: { title, url, kind } });
+      await saveBlock({ data: { title, url: kind === "heading" ? "" : url, kind } });
       setTitle("");
       setUrl("");
       await reload();
@@ -47,9 +60,10 @@ function PageEditor() {
     }
   }
 
-  async function onRemove(id: number) {
+  async function onRemove(block: PageBlock) {
+    if (!window.confirm(`Remove "${block.title}" from your page?`)) return;
     try {
-      await deleteBlock({ data: id });
+      await deleteBlock({ data: block.id });
       await reload();
     } catch (error) {
       toast.error(errMsg(error));
@@ -64,6 +78,34 @@ function PageEditor() {
       await reload();
     } catch (error) {
       toast.error(errMsg(error));
+    }
+  }
+
+  function startEdit(block: PageBlock) {
+    setEditingId(block.id);
+    setEditTitle(block.title);
+    setEditUrl(block.url ?? "");
+  }
+
+  async function saveEdit(block: PageBlock) {
+    setSavingEdit(true);
+    try {
+      await saveBlock({
+        data: {
+          id: block.id,
+          title: editTitle,
+          url: block.kind === "heading" ? "" : editUrl,
+          kind: block.kind,
+          visible: block.visible,
+        },
+      });
+      setEditingId(null);
+      await reload();
+      toast.success("Saved.");
+    } catch (error) {
+      toast.error(errMsg(error));
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -106,14 +148,14 @@ function PageEditor() {
             <button
               type="button"
               className={`h-9 rounded px-3 text-sm ${kind === "link" ? "bg-primary text-primary-fg" : "text-muted"}`}
-              onClick={() => setKind("link")}
+              onClick={() => selectKind("link")}
             >
               Link
             </button>
             <button
               type="button"
               className={`h-9 rounded px-3 text-sm ${kind === "heading" ? "bg-primary text-primary-fg" : "text-muted"}`}
-              onClick={() => setKind("heading")}
+              onClick={() => selectKind("heading")}
             >
               Heading
             </button>
@@ -135,7 +177,9 @@ function PageEditor() {
         </Button>
       </form>
 
-      {blocks === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => void reload().catch((error) => setLoadError(errMsg(error)))} />
+      ) : blocks === null ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : blocks.length === 0 ? (
         <EmptyState
@@ -147,43 +191,84 @@ function PageEditor() {
           {blocks.map((block, index) => (
             <li
               key={block.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-3 sm:px-4"
+              className="rounded-lg border border-border bg-surface px-3 py-3 sm:px-4"
             >
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  className="grid size-8 place-items-center rounded text-muted hover:bg-bg hover:text-fg disabled:opacity-30"
-                  onClick={() => void move(index, -1)}
-                  disabled={index === 0}
-                  aria-label="Move up"
-                >
-                  <ChevronUp className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  className="grid size-8 place-items-center rounded text-muted hover:bg-bg hover:text-fg disabled:opacity-30"
-                  onClick={() => void move(index, 1)}
-                  disabled={index === blocks.length - 1}
-                  aria-label="Move down"
-                >
-                  <ChevronDown className="size-4" />
-                </button>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-fg">{block.title}</p>
-                <p className="truncate text-xs text-muted">
-                  {block.kind === "heading" ? "Heading" : block.url}
-                </p>
-              </div>
-              <Switch checked={block.visible} onCheckedChange={() => toggleVisible(block)} />
-              <button
-                type="button"
-                className="grid size-11 place-items-center rounded-md text-muted hover:bg-bg hover:text-danger"
-                onClick={() => onRemove(block.id)}
-                aria-label="Remove"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              {editingId === block.id ? (
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <Field label={block.kind === "heading" ? "Heading" : "Title"}>
+                    <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                  </Field>
+                  {block.kind === "link" ? (
+                    <Field label="URL">
+                      <Input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="https://" />
+                    </Field>
+                  ) : (
+                    <div />
+                  )}
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" disabled={savingEdit} onClick={() => void saveEdit(block)}>
+                      {savingEdit ? "Saving…" : "Save"}
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      className="grid size-8 place-items-center rounded text-muted hover:bg-bg hover:text-fg disabled:opacity-30"
+                      onClick={() => void move(index, -1)}
+                      disabled={index === 0}
+                      aria-label="Move up"
+                    >
+                      <ChevronUp className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="grid size-8 place-items-center rounded text-muted hover:bg-bg hover:text-fg disabled:opacity-30"
+                      onClick={() => void move(index, 1)}
+                      disabled={index === blocks.length - 1}
+                      aria-label="Move down"
+                    >
+                      <ChevronDown className="size-4" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(block)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-medium text-fg">{block.title}</p>
+                    <p className="truncate text-xs text-muted">
+                      {block.kind === "heading" ? "Heading" : block.url}
+                    </p>
+                  </button>
+                  <Switch
+                    checked={block.visible}
+                    onCheckedChange={() => toggleVisible(block)}
+                    ariaLabel={`${block.visible ? "Hide" : "Show"} "${block.title}" on your page`}
+                  />
+                  <button
+                    type="button"
+                    className="grid size-11 place-items-center rounded-md text-muted hover:bg-bg hover:text-danger"
+                    onClick={() => startEdit(block)}
+                    aria-label={`Edit "${block.title}"`}
+                  >
+                    <Pencil className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="grid size-11 place-items-center rounded-md text-muted hover:bg-bg hover:text-danger"
+                    onClick={() => void onRemove(block)}
+                    aria-label={`Remove "${block.title}"`}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

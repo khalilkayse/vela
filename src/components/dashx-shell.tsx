@@ -1,11 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Receipt, Users, Mail, HardDrive, CreditCard, Shield, Menu, X } from "lucide-react";
+import {
+  LayoutDashboard,
+  Store,
+  Receipt,
+  Users,
+  Mail,
+  HardDrive,
+  CreditCard,
+  Shield,
+  Wallet,
+  Menu,
+  X,
+} from "lucide-react";
 import { Logo } from "@/components/logo";
 import { UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { authClient } from "@/lib/auth/client";
-import { getIsPlatformAdmin } from "@/lib/server/admin";
+import { getIsPlatformAdmin, getPaySettings } from "@/lib/server/admin";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -15,6 +27,7 @@ import { errMsg } from "@/lib/errors";
 const NAV = [
   { to: "/dashx", label: "Overview", icon: LayoutDashboard, exact: true },
   { to: "/dashx/shops", label: "Shops", icon: Store, exact: false },
+  { to: "/dashx/payouts", label: "Payouts", icon: Wallet, exact: false },
   { to: "/dashx/orders", label: "Orders", icon: Receipt, exact: false },
   { to: "/dashx/users", label: "Accounts", icon: Users, exact: false },
   { to: "/dashx/access", label: "Access", icon: Shield, exact: false },
@@ -23,9 +36,20 @@ const NAV = [
   { to: "/dashx/payments", label: "Payments", icon: CreditCard, exact: false },
 ] as const;
 
+function stripTrailingSlash(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+}
+
 function navActive(pathname: string, to: string, exact: boolean) {
-  if (exact) return pathname === to;
-  return pathname === to || pathname.startsWith(`${to}/`);
+  const path = stripTrailingSlash(pathname);
+  if (exact) return path === to;
+  return path === to || path.startsWith(`${to}/`);
+}
+
+function currentPageLabel(pathname: string): string {
+  const path = stripTrailingSlash(pathname);
+  const match = [...NAV].reverse().find((item) => navActive(path, item.to, item.exact));
+  return match?.label ?? "Platform";
 }
 
 function DashxFrame({ children }: { children: ReactNode }) {
@@ -36,6 +60,7 @@ export function DashxShell() {
   const { user, isPending } = useCurrentUserState();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [payBanner, setPayBanner] = useState<{ mode: "sandbox" | "live"; liveReady: boolean } | null>(null);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -43,6 +68,10 @@ export function DashxShell() {
       setAllowed(false);
       return;
     }
+    // Reset to the "checking" state first — otherwise a stale `false` from a
+    // previous signed-out render flashes "You do not have access" while this
+    // check is still in flight for the newly signed-in user.
+    setAllowed(null);
     let cancelled = false;
     getIsPlatformAdmin()
       .then((ok) => {
@@ -57,8 +86,29 @@ export function DashxShell() {
   }, [user]);
 
   useEffect(() => {
+    if (!allowed) return;
+    getPaySettings()
+      .then((pay) => setPayBanner({ mode: pay.mode, liveReady: pay.liveHasKey && Boolean(pay.liveApiUser) }))
+      .catch(() => undefined);
+  }, [allowed]);
+
+  useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   if (isPending || (user && allowed === null)) {
     return (
@@ -70,15 +120,7 @@ export function DashxShell() {
     );
   }
   if (!user) return <DashxSignIn />;
-  if (!allowed) {
-    return (
-      <DashxFrame>
-        <main className="grid min-h-screen place-items-center px-4">
-          <p className="text-sm text-muted">You do not have access.</p>
-        </main>
-      </DashxFrame>
-    );
-  }
+  if (!allowed) return <DashxNoAccess />;
 
   return (
     <DashxFrame>
@@ -92,12 +134,22 @@ export function DashxShell() {
             <NavLink key={item.to} {...item} pathname={pathname} />
           ))}
         </nav>
-        <div className="border-t border-border p-4">
+        <div className="min-w-0 border-t border-border p-4">
           <UserButton />
         </div>
       </aside>
 
       <div className="lg:pl-60">
+        {payBanner && (payBanner.mode === "sandbox" || !payBanner.liveReady) ? (
+          <div className="flex items-center justify-center gap-2 bg-warn/15 px-4 py-2 text-center text-xs font-medium text-fg">
+            {payBanner.mode === "sandbox"
+              ? "Payments are in sandbox mode — test cards and wallets can unlock real products."
+              : "Live Sifalo Pay credentials aren't set — paid checkout is off for every shop."}
+            <Link to="/dashx/payments" className="underline underline-offset-2">
+              Open Payments
+            </Link>
+          </div>
+        ) : null}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/90 px-4 backdrop-blur-md lg:px-8">
           <button
             type="button"
@@ -107,7 +159,7 @@ export function DashxShell() {
           >
             <Menu className="size-5" />
           </button>
-          <p className="text-sm font-medium text-fg">Platform</p>
+          <p className="text-sm font-medium text-fg">{currentPageLabel(pathname)}</p>
           <span />
         </header>
         <main className="px-4 py-8 pb-24 lg:px-8 lg:pb-12">
@@ -137,14 +189,47 @@ export function DashxShell() {
                 <X className="size-5" />
               </button>
             </div>
-            <nav className="flex flex-col gap-0.5 px-3 py-4">
+            <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4">
               {NAV.map((item) => (
                 <NavLink key={item.to} {...item} pathname={pathname} />
               ))}
             </nav>
+            <div className="min-w-0 border-t border-border p-4">
+              <UserButton />
+            </div>
           </div>
         </div>
       ) : null}
+    </DashxFrame>
+  );
+}
+
+/** Signed in, but not a platform admin — e.g. a seller who found /dashx. */
+function DashxNoAccess() {
+  const [signingOut, setSigningOut] = useState(false);
+  return (
+    <DashxFrame>
+      <main className="grid min-h-screen place-items-center px-4">
+        <div className="max-w-sm text-center">
+          <Logo className="justify-center" />
+          <p className="mt-6 text-sm text-muted">
+            You're signed in, but this account does not have access to the owner console.
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-5"
+            disabled={signingOut}
+            onClick={() => {
+              setSigningOut(true);
+              void authClient.signOut().then(() => {
+                window.location.href = "/dashx";
+              });
+            }}
+          >
+            {signingOut ? "Signing out…" : "Sign out and use a different account"}
+          </Button>
+        </div>
+      </main>
     </DashxFrame>
   );
 }

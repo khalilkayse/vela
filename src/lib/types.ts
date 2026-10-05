@@ -1,4 +1,4 @@
-import type { CoverStyle, ProductKind, ShopLayout } from "./constants";
+import type { CoverStyle, PayoutMethod, ProductKind, ShopLayout } from "./constants";
 
 export type Shop = {
   id: number;
@@ -19,10 +19,13 @@ export type Shop = {
   tiktokUrl: string | null;
   terms: string;
   contactEmail: string | null;
-  sifaloConnected: boolean;
-  hasSifaloCredentials: boolean;
-  allowOwnSifalo: boolean;
+  payoutMethod: PayoutMethod | null;
+  payoutAccount: string;
+  payoutName: string;
+  /** True when the platform has working Sifalo Pay credentials for the active mode. */
   checkoutLive: boolean;
+  /** True when the platform is running in sandbox mode (test cards/wallets only). */
+  testMode: boolean;
   country: string | null;
   published: boolean;
   createdAt: string;
@@ -80,16 +83,35 @@ export type Order = {
   customerName: string;
   customerEmail: string;
   amount: number;
+  feeAmount: number;
+  netAmount: number;
   currency: string;
   status: "pending" | "paid" | "failed" | "cancelled";
   sifaloSid: string | null;
+  sifaloEnv: "sandbox" | "live" | null;
   paymentType: string | null;
+  /** Legacy flag from the retired demo-checkout flow — never set on new orders. */
   demo: boolean;
+  payoutId: number | null;
   fulfilled: boolean;
   fulfilledAt: string | null;
   fulfillmentNote: string;
   createdAt: string;
   paidAt: string | null;
+};
+
+export type Payout = {
+  id: number;
+  shopId: number;
+  userId: string;
+  amount: number;
+  currency: string;
+  method: string;
+  account: string;
+  reference: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 export type PublicShopPayload = {
@@ -99,7 +121,14 @@ export type PublicShopPayload = {
 };
 
 export type DashboardStats = {
+  /** Gross sales (what buyers paid), live orders only. */
   revenue: number;
+  /** Platform fee taken out of `revenue`. */
+  fees: number;
+  /** `revenue - fees`: what the seller earned. */
+  earnings: number;
+  /** `earnings` not yet paid out. */
+  balance: number;
   orderCount: number;
   paidCount: number;
   productCount: number;

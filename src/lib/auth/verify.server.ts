@@ -42,7 +42,7 @@ export class UnauthorizedError extends Error {
   }
 }
 
-export type VerifiedUser = { id: string; email: string | null };
+export type VerifiedUser = { id: string; email: string | null; emailVerified: boolean };
 
 /**
  * Resolve the signed-in user from the current request, or `null` when auth isn't
@@ -73,7 +73,11 @@ export async function getSessionUser(
   } catch {
     /* profiles table may not exist yet */
   }
-  return { id: session.user.id, email: session.user.email ?? null };
+  return {
+    id: session.user.id,
+    email: session.user.email ?? null,
+    emailVerified: Boolean(session.user.emailVerified),
+  };
 }
 
 /**

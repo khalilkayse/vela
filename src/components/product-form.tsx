@@ -29,10 +29,13 @@ export function ProductForm({
   product,
   defaultKind = "digital",
   lockKind = false,
+  onSaved,
 }: {
   product?: Product;
   defaultKind?: ProductKind;
   lockKind?: boolean;
+  /** Called with the server's copy after a successful save on an existing product — the slug can change (collision suffix). */
+  onSaved?: (product: Product) => void;
 }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState(product?.title ?? "");
@@ -55,6 +58,7 @@ export function ProductForm({
   const [published, setPublished] = useState(product?.published ?? true);
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [coverUrl, setCoverUrl] = useState(product?.coverUrl ?? null);
+  const [coverFileId, setCoverFileId] = useState(product?.coverFileId ?? null);
   const [gallery, setGallery] = useState<ProductImage[]>(product?.gallery ?? []);
   const [pendingCover, setPendingCover] = useState<File | null>(null);
   const [pendingGallery, setPendingGallery] = useState<{ file: File; url: string }[]>([]);
@@ -64,6 +68,7 @@ export function ProductForm({
   const [formError, setFormError] = useState<string | null>(null);
 
   const isArticle = kind === "article";
+  const isLink = kind === "link";
   const needsPrice = kind === "digital" || kind === "service" || (isArticle && paidReadOnly);
   const showDelivery = kind === "digital" || kind === "service";
   const noun = isArticle ? "article" : "product";
@@ -89,6 +94,9 @@ export function ProductForm({
           : "Enter a price above zero.";
       }
     }
+    if (isLink && !deliveryUrl.trim()) {
+      return "Add the link's URL.";
+    }
     if (isArticle && published && !htmlToPlain(bodyHtml)) {
       return "Write the article before publishing, or save it as a draft.";
     }
@@ -99,6 +107,7 @@ export function ProductForm({
     if (pendingCover) {
       const uploaded = await uploadMedia(pendingCover, { productId, kind: "cover" });
       setCoverUrl(uploaded.url);
+      setCoverFileId(uploaded.id);
       setPendingCover(null);
     }
     if (pendingGallery.length > 0) {
@@ -135,7 +144,7 @@ export function ProductForm({
           coverStyle,
           buttonLabel,
           deliveryNote: showDelivery ? deliveryNote : "",
-          deliveryUrl: showDelivery ? deliveryUrl : "",
+          deliveryUrl: showDelivery || isLink ? deliveryUrl : "",
           published,
           featured,
           slug: slug || undefined,
@@ -150,8 +159,14 @@ export function ProductForm({
         }
       }
       toast.success(product ? `${kindLabel(kind)} saved.` : `${kindLabel(kind)} created.`);
-      if (!product) {
-        await navigate({ to: "/dashboard/products/$id", params: { id: String(saved.id) } });
+      if (product) {
+        setSlug(saved.slug);
+        onSaved?.(saved);
+      } else {
+        await navigate({
+          to: isArticle ? "/dashboard/articles/$id" : "/dashboard/products/$id",
+          params: { id: String(saved.id) },
+        });
       }
     } catch (error) {
       const message = errMsg(error);
@@ -187,6 +202,7 @@ export function ProductForm({
     try {
       const uploaded = await uploadMedia(file, { productId: product.id, kind: "cover" });
       setCoverUrl(uploaded.url);
+      setCoverFileId(uploaded.id);
       toast.success("Cover updated.");
     } catch (error) {
       toast.error(errMsg(error));
@@ -212,18 +228,16 @@ export function ProductForm({
   }
 
   async function clearCover() {
-    if (!product) {
+    if (!product || !coverFileId) {
       setPendingCover(null);
       setCoverUrl(null);
-      return;
-    }
-    if (!product.coverFileId) {
-      setCoverUrl(null);
+      setCoverFileId(null);
       return;
     }
     try {
-      await removeProductFile({ data: product.coverFileId });
+      await removeProductFile({ data: coverFileId });
       setCoverUrl(null);
+      setCoverFileId(null);
     } catch (error) {
       toast.error(errMsg(error));
     }
@@ -439,19 +453,16 @@ export function ProductForm({
               </p>
             )}
           </>
+        ) : isLink ? (
+          <Field label="Link URL" hint="Where this free link goes. Shown as the button on your page.">
+            <Input
+              value={deliveryUrl}
+              onChange={(e) => setDeliveryUrl(e.target.value)}
+              placeholder="https://"
+              required
+            />
+          </Field>
         ) : null}
-
-        {formError ? (
-          <p className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
-            {formError}
-          </p>
-        ) : null}
-
-        <div className="lg:hidden">
-          <Button type="submit" className="w-full" disabled={busy || uploading}>
-            {saveLabel}
-          </Button>
-        </div>
       </div>
 
       <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
@@ -479,9 +490,11 @@ export function ProductForm({
           <Switch checked={featured} onCheckedChange={setFeatured} label="Featured" />
         </div>
         {formError ? (
-          <p className="hidden text-sm text-danger lg:block">{formError}</p>
+          <p className="rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {formError}
+          </p>
         ) : null}
-        <div className="hidden flex-col gap-2 lg:flex">
+        <div className="flex flex-col gap-2">
           <Button type="submit" disabled={busy || uploading}>
             {saveLabel}
           </Button>
@@ -491,13 +504,6 @@ export function ProductForm({
             </Button>
           ) : null}
         </div>
-        {product ? (
-          <div className="lg:hidden">
-            <Button type="button" variant="ghost" className="w-full" disabled={removing} onClick={onDelete}>
-              {removing ? "Deleting…" : "Delete"}
-            </Button>
-          </div>
-        ) : null}
       </aside>
     </form>
   );

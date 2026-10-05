@@ -35,8 +35,9 @@ function Home() {
                 <span className="text-primary"> in one click.</span>
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-                Claim a username. Publish files, sessions, and links. Buyers check out on
-                Sifalo Pay, and the money goes to you — never through {APP_NAME}.
+                Claim a username. Publish files, sessions, and links. Buyers check out with
+                Sifalo Pay, and {APP_NAME} pays out what you earn — a small fee per sale, nothing
+                else to set up.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg">
@@ -50,7 +51,7 @@ function Home() {
                 </Button>
               </div>
               <p className="mt-4 text-sm text-subtle">
-                Unique public URL. Purchase-gated files. Demo checkout until you connect keys.
+                Unique public URL. Purchase-gated files. Checkout works from your first sale.
               </p>
             </div>
             <HeroPreview />
@@ -107,8 +108,8 @@ function Home() {
               />
               <Step
                 n="02"
-                title="Connect Sifalo Pay"
-                body="Paste your API username and password in settings. Checkout is hosted by Sifalo Pay, so funds land in your merchant account."
+                title="Add payout details"
+                body="Tell Kart which mobile wallet or bank account to send your earnings to. Checkout itself needs nothing from you."
               />
               <Step
                 n="03"
@@ -124,12 +125,11 @@ function Home() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Payouts</p>
               <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-fg">
-                Your Sifalo Pay. Your money.
+                Checkout handled. You get paid.
               </h2>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
-                Checkout is hosted by Sifalo Pay. {APP_NAME} never sits in the middle of the
-                funds. EDAHAB, ZAAD, Premier Wallet, and card — whatever the merchant’s
-                Sifalo account accepts.
+                Buyers pay with EDAHAB, ZAAD, Premier Wallet, or card through Sifalo Pay. {APP_NAME}{" "}
+                takes a small fee per sale and sends you the rest — no merchant account to set up.
               </p>
               <div className="mt-6 flex items-start gap-3 text-sm text-muted">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -139,8 +139,7 @@ function Home() {
             <div className="overflow-hidden rounded-xl bg-primary px-6 py-10 text-primary-fg sm:px-10 sm:py-12">
               <h3 className="font-display text-3xl font-bold tracking-tight">Ready when you are.</h3>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-primary-fg/85">
-                Create an account, pick a username, and publish. Connect Sifalo Pay when you
-                want live checkout — demo flow works until then.
+                Create an account, pick a username, and publish. Checkout is already live.
               </p>
               <div className="mt-8">
                 <Button asChild size="lg" variant="secondary" className="bg-surface text-fg hover:bg-paper">
