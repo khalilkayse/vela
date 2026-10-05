@@ -3,9 +3,9 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { defaultButtonLabel, type ProductKind } from "@/lib/constants";
 import { htmlToPlain } from "@/lib/html";
-import { parsePrice, slugify, money } from "@/lib/utils";
+import { normalizeUrl, parsePrice, slugify, money } from "@/lib/utils";
 import { publicMediaPath } from "@/lib/upload";
-import { decorateShop, mapProduct, type ProductRow, type ShopRow } from "./map";
+import { decoratePublicShop, mapProduct, mapPublicProduct, type ProductRow, type ShopRow } from "./map";
 
 async function requireShop(userId: string) {
   const sql = await getSql();
@@ -45,7 +45,7 @@ async function orderUnlocksProduct(orderRef: string | undefined, productId: numb
   const sql = await getSql();
   const rows = await sql.query<{ id: number }>(
     `select id from orders
-     where order_ref = $1 and product_id = $2 and status = 'paid'
+     where order_ref = $1 and product_id = $2 and status = 'paid' and demo = false
      limit 1`,
     [ref, productId],
   );
@@ -99,8 +99,8 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     const unlocked = !paywalled || (await orderUnlocksProduct(data.access, row.id));
     const { sanitizeHtml } = await import("./sanitize");
     return {
-      shop: await decorateShop(shops[0]),
-      product: mapProduct(row, {
+      shop: await decoratePublicShop(shops[0]),
+      product: mapPublicProduct(row, {
         gallery: await galleryFor(row.id),
         bodyHtml: unlocked ? sanitizeHtml(row.body_html ?? "") : "",
         unlocked,
@@ -135,6 +135,13 @@ export const upsertProduct = createServerFn({ method: "POST" })
       throw new Error("Enter a price above zero, or pick Article / Free link.");
     }
     if (kind === "article" && price < 0) throw new Error("Enter a valid price.");
+    const deliveryUrl = (input.deliveryUrl ?? "").trim() ? normalizeUrl(input.deliveryUrl ?? "") : null;
+    if (kind === "link") {
+      if (!deliveryUrl) throw new Error("Add the link's URL.");
+    }
+    if (input.deliveryUrl && (input.deliveryUrl ?? "").trim() && !deliveryUrl) {
+      throw new Error("Enter a valid URL for the delivery link.");
+    }
     return {
       id: input.id,
       title: title.slice(0, 80),
@@ -145,7 +152,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
       coverStyle: (input.coverStyle ?? "mesh-1").slice(0, 24),
       buttonLabel: (input.buttonLabel ?? defaultButtonLabel(kind)).trim().slice(0, 32),
       deliveryNote: (input.deliveryNote ?? "").trim().slice(0, 2000),
-      deliveryUrl: (input.deliveryUrl ?? "").trim().slice(0, 500) || null,
+      deliveryUrl: deliveryUrl ? deliveryUrl.slice(0, 500) : null,
       published: input.published !== false,
       featured: Boolean(input.featured),
       slug: (input.slug ? slugify(input.slug) : slugify(title)) || "item",
@@ -218,9 +225,26 @@ export const deleteProduct = createServerFn({ method: "POST" })
   .validator((id: number) => id)
   .handler(async ({ context, data: id }) => {
     const sql = await getSql();
+    // The product_files rows cascade-delete with the product, but that
+    // leaves the underlying S3/R2 objects (and their storage cost) behind.
+    const files = await sql.query<{ object_key: string | null }>(
+      "select object_key from product_files where product_id = $1 and user_id = $2",
+      [id, context.userId],
+    );
     await sql`delete from products where id = ${id} and user_id = ${context.userId}`;
+    const { deleteObject } = await import("@/lib/storage");
+    await Promise.all(
+      files.filter((file) => file.object_key).map((file) => deleteObject(file.object_key as string)),
+    );
     return { ok: true };
   });
+
+// The products list only reorders non-article products, but `sort_order` is
+// shared with articles (and used to pick each new item's initial position).
+// A plain 0..n-1 renumbering of just this subset could land on a value an
+// article already holds. A large, fixed offset keeps this subset's range
+// disjoint from anything articles (or future products) ever get by default.
+const PRODUCT_REORDER_OFFSET = 1_000_000;
 
 export const reorderProducts = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
@@ -229,7 +253,7 @@ export const reorderProducts = createServerFn({ method: "POST" })
     const sql = await getSql();
     for (let i = 0; i < ids.length; i += 1) {
       await sql`
-        update products set sort_order = ${i}, updated_at = now()
+        update products set sort_order = ${PRODUCT_REORDER_OFFSET + i}, updated_at = now()
         where id = ${ids[i]} and user_id = ${context.userId}
       `;
     }

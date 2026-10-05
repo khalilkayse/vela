@@ -1,7 +1,7 @@
 import type { Order, PageBlock, Product, ProductImage, Shop } from "@/lib/types";
 import { money, toIso } from "@/lib/utils";
 import { publicMediaPath } from "@/lib/upload";
-import type { ProductKind, ShopLayout } from "@/lib/constants";
+import type { PayoutMethod, ProductKind, ShopLayout } from "@/lib/constants";
 
 export type ShopRow = {
   id: number;
@@ -21,12 +21,11 @@ export type ShopRow = {
   tiktok_url: string | null;
   terms?: string | null;
   contact_email?: string | null;
-  sifalo_api_key: string | null;
-  sifalo_api_password: string | null;
-  sifalo_connected: boolean;
+  payout_method?: string | null;
+  payout_account?: string | null;
+  payout_name?: string | null;
   published: boolean;
   country?: string | null;
-  allow_own_sifalo?: boolean | null;
   created_at: unknown;
 };
 
@@ -73,16 +72,34 @@ export type OrderRow = {
   customer_name: string;
   customer_email: string;
   amount: unknown;
+  fee_amount?: unknown;
+  net_amount?: unknown;
   currency: string;
   status: string;
   sifalo_sid: string | null;
+  sifalo_env?: string | null;
   payment_type: string | null;
   demo: boolean;
+  payout_id?: number | null;
   fulfilled?: boolean | null;
   fulfilled_at?: unknown;
   fulfillment_note?: string | null;
   created_at: unknown;
   paid_at: unknown;
+};
+
+export type PayoutRow = {
+  id: number;
+  shop_id: number;
+  user_id: string;
+  amount: unknown;
+  currency: string;
+  method: string;
+  account: string;
+  reference: string;
+  note: string;
+  created_by: string;
+  created_at: unknown;
 };
 
 function asLayout(value: string): ShopLayout {
@@ -97,7 +114,22 @@ function asKind(value: string): ProductKind {
   return "digital";
 }
 
-export function mapShop(row: ShopRow, extras?: { checkoutLive?: boolean }): Shop {
+function asPayoutMethod(value: string | null | undefined): PayoutMethod | null {
+  if (
+    value === "evc" ||
+    value === "zaad" ||
+    value === "sahal" ||
+    value === "edahab" ||
+    value === "premier" ||
+    value === "bank" ||
+    value === "other"
+  ) {
+    return value;
+  }
+  return null;
+}
+
+export function mapShop(row: ShopRow, extras?: { checkoutLive?: boolean; testMode?: boolean }): Shop {
   const avatarFileId = row.avatar_file_id ?? null;
   return {
     id: row.id,
@@ -118,14 +150,20 @@ export function mapShop(row: ShopRow, extras?: { checkoutLive?: boolean }): Shop
     tiktokUrl: row.tiktok_url,
     terms: row.terms ?? "",
     contactEmail: row.contact_email ?? null,
-    sifaloConnected: Boolean(row.sifalo_connected),
-    hasSifaloCredentials: Boolean(row.sifalo_api_key && row.sifalo_api_password),
-    allowOwnSifalo: Boolean(row.allow_own_sifalo),
+    payoutMethod: asPayoutMethod(row.payout_method),
+    payoutAccount: row.payout_account ?? "",
+    payoutName: row.payout_name ?? "",
     checkoutLive: Boolean(extras?.checkoutLive),
+    testMode: Boolean(extras?.testMode),
     country: row.country ?? null,
     published: Boolean(row.published),
     createdAt: toIso(row.created_at),
   };
+}
+
+/** Public-facing shop: drops the owner id and private contact email. */
+export function mapPublicShop(row: ShopRow, extras?: { checkoutLive?: boolean; testMode?: boolean }): Shop {
+  return { ...mapShop(row, extras), userId: "", contactEmail: null };
 }
 
 export function mapProduct(
@@ -164,6 +202,25 @@ export function mapProduct(
   };
 }
 
+/**
+ * Public-facing product: a "free link" IS its destination, so it keeps
+ * `deliveryUrl`. Every other kind withholds `deliveryUrl`/`deliveryNote` —
+ * those unlock only after a paid order (see `getPublicOrder`).
+ */
+export function mapPublicProduct(
+  row: ProductRow,
+  extras?: { gallery?: ProductImage[]; bodyHtml?: string; unlocked?: boolean },
+): Product {
+  const product = mapProduct(row, extras);
+  const keepDelivery = product.kind === "link";
+  return {
+    ...product,
+    userId: "",
+    deliveryUrl: keepDelivery ? product.deliveryUrl : null,
+    deliveryNote: keepDelivery ? product.deliveryNote : "",
+  };
+}
+
 export function mapBlock(row: BlockRow): PageBlock {
   return {
     id: row.id,
@@ -175,6 +232,10 @@ export function mapBlock(row: BlockRow): PageBlock {
     sortOrder: row.sort_order ?? 0,
     visible: Boolean(row.visible),
   };
+}
+
+function asSifaloEnv(value: string | null | undefined): "sandbox" | "live" | null {
+  return value === "sandbox" || value === "live" ? value : null;
 }
 
 export function mapOrder(row: OrderRow): Order {
@@ -192,11 +253,15 @@ export function mapOrder(row: OrderRow): Order {
     customerName: row.customer_name,
     customerEmail: row.customer_email,
     amount: money(row.amount),
+    feeAmount: money(row.fee_amount),
+    netAmount: money(row.net_amount),
     currency: row.currency || "USD",
     status,
     sifaloSid: row.sifalo_sid,
+    sifaloEnv: asSifaloEnv(row.sifalo_env),
     paymentType: row.payment_type,
     demo: Boolean(row.demo),
+    payoutId: row.payout_id ?? null,
     fulfilled: Boolean(row.fulfilled),
     fulfilledAt: row.fulfilled_at ? toIso(row.fulfilled_at) : null,
     fulfillmentNote: row.fulfillment_note ?? "",
@@ -205,8 +270,33 @@ export function mapOrder(row: OrderRow): Order {
   };
 }
 
+export function mapPayout(row: PayoutRow): import("@/lib/types").Payout {
+  return {
+    id: row.id,
+    shopId: row.shop_id,
+    userId: row.user_id,
+    amount: money(row.amount),
+    currency: row.currency || "USD",
+    method: row.method ?? "",
+    account: row.account ?? "",
+    reference: row.reference ?? "",
+    note: row.note ?? "",
+    createdBy: row.created_by,
+    createdAt: toIso(row.created_at),
+  };
+}
+
+/** Checkout status for the platform-wide Sifalo merchant, used on every shop alike. */
+export async function platformCheckoutStatus(): Promise<{ checkoutLive: boolean; testMode: boolean }> {
+  const { activeCredentials } = await import("@/lib/sifalo.server");
+  const creds = await activeCredentials();
+  return { checkoutLive: Boolean(creds), testMode: creds?.env === "sandbox" };
+}
+
 export async function decorateShop(row: ShopRow): Promise<Shop> {
-  const { resolveSifaloMerchant } = await import("@/lib/sifalo.server");
-  const merchant = await resolveSifaloMerchant(row);
-  return mapShop(row, { checkoutLive: Boolean(merchant) });
+  return mapShop(row, await platformCheckoutStatus());
+}
+
+export async function decoratePublicShop(row: ShopRow): Promise<Shop> {
+  return mapPublicShop(row, await platformCheckoutStatus());
 }

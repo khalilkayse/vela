@@ -99,25 +99,39 @@ export const LAYOUTS = [
 
 export type ShopLayout = (typeof LAYOUTS)[number]["id"];
 
-/** Hosts from Sifalo Pay. Live keys only work on .com. */
+/** Sifalo Pay's own hosts (developer.sifalopay.com/docs/sandbox) — fixed, not configurable. */
 export type SifaloHosts = {
   gatewayUrl: string;
   verifyUrl: string;
   checkoutPage: string;
 };
 
-export const SIFALO_PRESETS: Record<"production" | "staging", SifaloHosts> = {
-  production: {
+export type SifaloEnv = "sandbox" | "live";
+
+export const SIFALO_PRESETS: Record<SifaloEnv, SifaloHosts> = {
+  live: {
     gatewayUrl: "https://api.sifalopay.com/gateway/",
     verifyUrl: "https://api.sifalopay.com/gateway/verify.php",
     checkoutPage: "https://pay.sifalo.com/checkout/",
   },
-  staging: {
+  sandbox: {
     gatewayUrl: "https://spay-api.sifalo.net/gateway/",
     verifyUrl: "https://spay-api.sifalo.net/gateway/verify.php",
     checkoutPage: "https://pay.sifalo.net/checkout/",
   },
 };
+
+export const PAYOUT_METHODS = [
+  { id: "evc", label: "EVC Plus" },
+  { id: "zaad", label: "ZAAD" },
+  { id: "sahal", label: "Sahal" },
+  { id: "edahab", label: "eDahab" },
+  { id: "premier", label: "Premier Wallet" },
+  { id: "bank", label: "Bank transfer" },
+  { id: "other", label: "Other" },
+] as const;
+
+export type PayoutMethod = (typeof PAYOUT_METHODS)[number]["id"];
 
 export const COVER_STYLES = [
   "mesh-1",

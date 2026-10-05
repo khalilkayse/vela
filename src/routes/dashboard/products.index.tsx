@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { DashboardPage } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { ProductCover } from "@/components/product-cover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/card";
@@ -18,14 +18,16 @@ export const Route = createFileRoute("/dashboard/products/")({ component: Produc
 
 function ProductsPage() {
   const [products, setProducts] = useState<Product[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function reload() {
+    setLoadError(null);
     const rows = await listMyProducts();
     setProducts(rows.filter((row) => row.kind !== "article"));
   }
 
   useEffect(() => {
-    reload().catch(() => setProducts([]));
+    reload().catch((error) => setLoadError(errMsg(error)));
   }, []);
 
   async function move(index: number, dir: -1 | 1) {
@@ -62,7 +64,9 @@ function ProductsPage() {
         </div>
       }
     >
-      {products === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => void reload().catch((error) => setLoadError(errMsg(error)))} />
+      ) : products === null ? (
         <div className="grid gap-3">
           <Skeleton className="h-24 rounded-xl" />
           <Skeleton className="h-24 rounded-xl" />

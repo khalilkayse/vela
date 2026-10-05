@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, CreditCard, Package, Copy, Check } from "lucide-react";
+import { ArrowRight, CreditCard, Package, Copy, Check, Wallet } from "lucide-react";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { Badge, Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardStats, listMyOrders } from "@/lib/server/orders";
 import type { DashboardStats, Order } from "@/lib/types";
 import { OrderBadge } from "@/components/order-badge";
+import { errMsg } from "@/lib/errors";
 import { formatPrice } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -22,12 +23,22 @@ function DashboardHome() {
   const { user } = useCurrentUserState();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const pageUrl = typeof window !== "undefined" ? `${window.location.origin}/${shop.username}` : `/${shop.username}`;
 
+  function loadOrders() {
+    setOrdersError(null);
+    listMyOrders()
+      .then(setOrders)
+      .catch((error) => setOrdersError(errMsg(error)));
+  }
+
   useEffect(() => {
-    getDashboardStats().then(setStats).catch(() => setStats({ revenue: 0, orderCount: 0, paidCount: 0, productCount: 0 }));
-    listMyOrders().then(setOrders).catch(() => setOrders([]));
+    getDashboardStats()
+      .then(setStats)
+      .catch(() => setStats({ revenue: 0, fees: 0, earnings: 0, balance: 0, orderCount: 0, paidCount: 0, productCount: 0 }));
+    loadOrders();
   }, []);
 
   return (
@@ -86,17 +97,25 @@ function DashboardHome() {
       {!shop.checkoutLive ? (
         <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-semibold text-fg">Connect Sifalo Pay</p>
+            <p className="font-semibold text-fg">Checkout isn't open yet</p>
             <p className="mt-1 text-sm text-muted">
-              Checkout stays in demo until you add your API username and password from sifalopay.com.
+              Kart hasn't finished setting up payments on this instance. Free items and links still
+              work — paid checkout will turn on automatically once it's ready.
             </p>
           </div>
-          <Button asChild>
-            <Link to="/dashboard/settings">
-              <CreditCard />
-              Open settings
-            </Link>
-          </Button>
+        </Card>
+      ) : shop.testMode ? (
+        <Card className="mb-6 flex items-center justify-between p-5">
+          <div className="flex items-center gap-3">
+            <span className="grid size-10 place-items-center rounded-md bg-warn/10 text-warn">
+              <CreditCard className="size-4" />
+            </span>
+            <div>
+              <p className="font-semibold text-fg">Test mode</p>
+              <p className="text-sm text-muted">Checkout is running in Sifalo Pay sandbox — no real money moves.</p>
+            </div>
+          </div>
+          <Badge tone="warn">Test</Badge>
         </Card>
       ) : (
         <Card className="mb-6 flex items-center justify-between p-5">
@@ -106,21 +125,35 @@ function DashboardHome() {
             </span>
             <div>
               <p className="font-semibold text-fg">Live checkout</p>
-              <p className="text-sm text-muted">
-                {shop.hasSifaloCredentials
-                  ? "Buyers pay through your Sifalo Pay account."
-                  : "Buyers pay through the platform Sifalo Pay account."}
-              </p>
+              <p className="text-sm text-muted">Buyers pay through Sifalo Pay. Add your payout details in settings.</p>
             </div>
           </div>
           <Badge tone="success">Live</Badge>
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Revenue" value={stats ? formatPrice(stats.revenue) : null} />
-        <Stat label="Paid orders" value={stats ? String(stats.paidCount) : null} />
-        <Stat label="Products" value={stats ? String(stats.productCount) : null} />
+      {!shop.payoutAccount ? (
+        <Card className="mb-6 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-fg">Add your payout details</p>
+            <p className="mt-1 text-sm text-muted">
+              Tell Kart where to send what you earn — a mobile wallet or bank account.
+            </p>
+          </div>
+          <Button asChild variant="secondary">
+            <Link to="/dashboard/settings">
+              <Wallet />
+              Add payout details
+            </Link>
+          </Button>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Sales" value={stats ? formatPrice(stats.revenue) : null} />
+        <Stat label="Kart fee" value={stats ? formatPrice(stats.fees) : null} />
+        <Stat label="Earnings" value={stats ? formatPrice(stats.earnings) : null} />
+        <Stat label="Balance owed to you" value={stats ? formatPrice(stats.balance) : null} />
       </div>
 
       <div className="mt-10 flex items-end justify-between">
@@ -130,7 +163,9 @@ function DashboardHome() {
         </Link>
       </div>
       <div className="mt-4">
-        {orders === null ? (
+        {ordersError ? (
+          <ErrorState message={ordersError} onRetry={loadOrders} />
+        ) : orders === null ? (
           <Skeleton className="h-40 rounded-xl" />
         ) : orders.length === 0 ? (
           <EmptyState

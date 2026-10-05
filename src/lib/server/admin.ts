@@ -1,10 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { adminMiddleware } from "@/lib/auth/admin-middleware";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { getSessionUser } from "@/lib/auth/verify.server";
 import { getSql } from "@/lib/db";
 import { money, toIso } from "@/lib/utils";
-import { mapOrder, mapShop, type OrderRow, type ShopRow } from "./map";
+import { mapOrder, mapPayout, mapShop, type OrderRow, type PayoutRow, type ShopRow } from "./map";
 
 export class ForbiddenError extends Error {
   readonly status = 403;
@@ -24,15 +23,21 @@ function adminEmails(): Set<string> {
   );
 }
 
-type SessionUser = { id: string; email: string | null };
+type SessionUser = { id: string; email: string | null; emailVerified: boolean };
 
-/** Owner access is only the generated /dashx account (plus optional PLATFORM_ADMIN_EMAILS). */
+/**
+ * Owner access is only the generated /dashx account (plus optional
+ * PLATFORM_ADMIN_EMAILS). An allowlisted email promotes to admin only once
+ * it's VERIFIED — otherwise anyone could register that address first (email
+ * verification is not required to sign up) and claim the console before its
+ * real owner does.
+ */
 export async function assertPlatformAdmin(user: SessionUser): Promise<void> {
   const sql = await getSql();
   const email = user.email?.trim().toLowerCase() ?? "";
   const allow = adminEmails();
 
-  if (email && allow.has(email)) {
+  if (email && user.emailVerified && allow.has(email)) {
     await sql.query(
       `insert into platform_admins (user_id, email) values ($1, $2) on conflict (user_id) do update set email = excluded.email`,
       [user.id, email],
@@ -53,14 +58,31 @@ export const getIsPlatformAdmin = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     try {
-      const user = await getSessionUser();
-      if (!user || user.id !== context.userId) return false;
-      await assertPlatformAdmin(user);
+      // `context.userId` is already resolved by `authMiddleware` from either
+      // the session cookie or (in the partitioned live-preview iframe) the
+      // forwarded bearer token — re-deriving the session here with a second,
+      // bearer-less `getSessionUser()` call is what made this always say "no
+      // access" in the preview.
+      const sql = await getSql();
+      const rows = await sql.query<{ email: string | null; emailVerified: boolean | null }>(
+        `select email, "emailVerified" from "user" where id = $1 limit 1`,
+        [context.userId],
+      );
+      const row = rows[0];
+      if (!row) return false;
+      await assertPlatformAdmin({
+        id: context.userId,
+        email: row.email,
+        emailVerified: Boolean(row.emailVerified),
+      });
       return true;
     } catch {
       return false;
     }
   });
+
+/** Paid, real-money orders — excludes legacy demo orders and free claims. */
+const REAL_PAID_SQL = "status = 'paid' and demo = false and amount > 0";
 
 export const getPlatformStats = createServerFn({ method: "GET" })
   .middleware([adminMiddleware])
@@ -73,14 +95,18 @@ export const getPlatformStats = createServerFn({ method: "GET" })
       orders: number;
       paid: number;
       revenue: unknown;
+      fees: unknown;
+      balance: unknown;
     }>(`
       select
         (select count(*)::int from "user") as users,
         (select count(*)::int from shops) as shops,
         (select count(*)::int from products) as products,
         (select count(*)::int from orders) as orders,
-        (select count(*)::int from orders where status = 'paid') as paid,
-        coalesce((select sum(amount) from orders where status = 'paid'), 0) as revenue
+        (select count(*)::int from orders where status = 'paid' and demo = false) as paid,
+        coalesce((select sum(amount) from orders where ${REAL_PAID_SQL}), 0) as revenue,
+        coalesce((select sum(fee_amount) from orders where ${REAL_PAID_SQL}), 0) as fees,
+        coalesce((select sum(net_amount) from orders where ${REAL_PAID_SQL} and payout_id is null), 0) as balance
     `);
     const row = rows[0];
     return {
@@ -89,7 +115,11 @@ export const getPlatformStats = createServerFn({ method: "GET" })
       products: row?.products ?? 0,
       orders: row?.orders ?? 0,
       paid: row?.paid ?? 0,
+      // All amounts are USD-only (Sifalo Pay's only supported currency), so a
+      // straight sum is safe.
       revenue: money(row?.revenue),
+      fees: money(row?.fees),
+      balanceOwed: money(row?.balance),
     };
   });
 
@@ -98,6 +128,7 @@ export type AdminShop = ReturnType<typeof mapShop> & {
   ownerName: string | null;
   productCount: number;
   paidCount: number;
+  balanceOwed: number;
 };
 
 export const listPlatformShops = createServerFn({ method: "GET" })
@@ -110,13 +141,15 @@ export const listPlatformShops = createServerFn({ method: "GET" })
         owner_name: string | null;
         product_count: number;
         paid_count: number;
+        balance_owed: unknown;
       }
     >(`
       select s.*,
         u.email as owner_email,
         u.name as owner_name,
         (select count(*)::int from products p where p.shop_id = s.id) as product_count,
-        (select count(*)::int from orders o where o.shop_id = s.id and o.status = 'paid') as paid_count
+        (select count(*)::int from orders o where o.shop_id = s.id and o.status = 'paid' and o.demo = false) as paid_count,
+        coalesce((select sum(o.net_amount) from orders o where o.shop_id = s.id and ${REAL_PAID_SQL.replace(/orders/g, "o")} and o.payout_id is null), 0) as balance_owed
       from shops s
       left join "user" u on u.id = s.user_id
       order by s.created_at desc
@@ -128,6 +161,7 @@ export const listPlatformShops = createServerFn({ method: "GET" })
       ownerName: row.owner_name,
       productCount: row.product_count ?? 0,
       paidCount: row.paid_count ?? 0,
+      balanceOwed: money(row.balance_owed),
     }));
   });
 
@@ -141,21 +175,6 @@ export const setShopPublished = createServerFn({ method: "POST" })
     const sql = await getSql();
     await sql.query("update shops set published = $1, updated_at = now() where id = $2", [
       data.published,
-      data.shopId,
-    ]);
-    return { ok: true as const };
-  });
-
-export const setShopAllowOwnSifalo = createServerFn({ method: "POST" })
-  .middleware([adminMiddleware])
-  .validator((input: { shopId: number; allow: boolean }) => ({
-    shopId: Number(input.shopId),
-    allow: Boolean(input.allow),
-  }))
-  .handler(async ({ data }) => {
-    const sql = await getSql();
-    await sql.query("update shops set allow_own_sifalo = $1, updated_at = now() where id = $2", [
-      data.allow,
       data.shopId,
     ]);
     return { ok: true as const };
@@ -176,18 +195,6 @@ export const setShopCountry = createServerFn({ method: "POST" })
       data.shopId,
     ]);
     return { ok: true as const, country };
-  });
-
-export const clearShopSifalo = createServerFn({ method: "POST" })
-  .middleware([adminMiddleware])
-  .validator((shopId: number) => Number(shopId))
-  .handler(async ({ data: shopId }) => {
-    const sql = await getSql();
-    await sql.query(
-      `update shops set sifalo_api_key = null, sifalo_api_password = null, sifalo_connected = false, updated_at = now() where id = $1`,
-      [shopId],
-    );
-    return { ok: true as const };
   });
 
 export type AdminUser = {
@@ -328,6 +335,15 @@ export const listPlatformOrders = createServerFn({ method: "GET" })
       ...mapOrder(row),
       shopUsername: row.shop_username,
     }));
+  });
+
+/** For a pending order whose buyer may have closed the tab before `/pay/return` ran. */
+export const recheckOrderPayment = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((orderRef: string) => orderRef.trim())
+  .handler(async ({ data: orderRef }) => {
+    const { reverifyOrder } = await import("./payments.server");
+    return reverifyOrder(orderRef);
   });
 
 export const getSmtpSettings = createServerFn({ method: "GET" })
@@ -505,56 +521,181 @@ export const getPaySettings = createServerFn({ method: "GET" })
     const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
     const pay = await getSifaloPlatformConfig();
     return {
-      gatewayUrl: pay.gatewayUrl,
-      verifyUrl: pay.verifyUrl,
-      checkoutPage: pay.checkoutPage,
-      apiKey: pay.apiKey,
-      hasPassword: Boolean(pay.apiPassword),
-      usePlatformCredentials: pay.usePlatformCredentials,
+      mode: pay.mode,
+      sandboxApiUser: pay.sandbox.apiUser,
+      sandboxHasKey: Boolean(pay.sandbox.apiKey),
+      liveApiUser: pay.live.apiUser,
+      liveHasKey: Boolean(pay.live.apiKey),
+      feePercent: pay.feePercent,
+      feeFixed: pay.feeFixed,
     };
   });
 
 export const savePaySettings = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
   .validator((input: {
-    gatewayUrl: string;
-    verifyUrl: string;
-    checkoutPage: string;
-    apiKey: string;
-    apiPassword?: string;
-    usePlatformCredentials: boolean;
+    mode: string;
+    sandboxApiUser: string;
+    sandboxApiKey?: string;
+    liveApiUser: string;
+    liveApiKey?: string;
+    feePercent: number;
+    feeFixed: number;
   }) => ({
-    gatewayUrl: input.gatewayUrl.trim() || "https://api.sifalopay.com/gateway/",
-    verifyUrl: input.verifyUrl.trim() || "https://api.sifalopay.com/gateway/verify.php",
-    checkoutPage: input.checkoutPage.trim() || "https://pay.sifalo.com/checkout/",
-    apiKey: input.apiKey.trim(),
-    apiPassword: input.apiPassword?.trim() ?? "",
-    usePlatformCredentials: Boolean(input.usePlatformCredentials),
+    mode: input.mode === "live" ? ("live" as const) : ("sandbox" as const),
+    sandboxApiUser: input.sandboxApiUser.trim(),
+    sandboxApiKey: input.sandboxApiKey?.trim() ?? "",
+    liveApiUser: input.liveApiUser.trim(),
+    liveApiKey: input.liveApiKey?.trim() ?? "",
+    feePercent: Math.min(50, Math.max(0, Number(input.feePercent) || 0)),
+    feeFixed: Math.min(100, Math.max(0, Number(input.feeFixed) || 0)),
   }))
   .handler(async ({ data }) => {
-    const { writeSettings } = await import("@/lib/platform-settings");
-    const { getSifaloPlatformConfig } = await import("@/lib/sifalo.server");
-    const current = await getSifaloPlatformConfig();
-    await writeSettings({
-      sifalo_gateway_url: data.gatewayUrl,
-      sifalo_verify_url: data.verifyUrl,
-      sifalo_checkout_page: data.checkoutPage,
-      sifalo_api_key: data.apiKey,
-      sifalo_api_password: data.apiPassword || current.apiPassword,
-      sifalo_use_platform: data.usePlatformCredentials ? "1" : "0",
-    });
+    const { saveSifaloPlatformSettings } = await import("@/lib/sifalo.server");
+    await saveSifaloPlatformSettings(data);
+    return { ok: true as const };
+  });
+
+export const clearPayCredentials = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((env: string) => (env === "live" ? ("live" as const) : ("sandbox" as const)))
+  .handler(async ({ data: env }) => {
+    const { clearSifaloCredentials } = await import("@/lib/sifalo.server");
+    await clearSifaloCredentials(env);
     return { ok: true as const };
   });
 
 export const testPaySettings = createServerFn({ method: "POST" })
   .middleware([adminMiddleware])
-  .handler(async () => {
+  .validator((env: string) => (env === "live" ? ("live" as const) : ("sandbox" as const)))
+  .handler(async ({ data: env }) => {
     const { getSifaloPlatformConfig, sifaloTestCredentials } = await import("@/lib/sifalo.server");
     const pay = await getSifaloPlatformConfig();
-    if (!pay.apiKey || !pay.apiPassword) {
-      return { ok: false, message: "Save API username and password first." };
+    const creds = env === "live" ? pay.live : pay.sandbox;
+    if (!creds.apiUser || !creds.apiKey) {
+      return { ok: false, message: `Save the ${env} API username and key first.` };
     }
-    return sifaloTestCredentials(pay.apiKey, pay.apiPassword);
+    return sifaloTestCredentials(env, creds.apiUser, creds.apiKey);
+  });
+
+export type PayoutBalance = {
+  shopId: number;
+  shopUsername: string;
+  shopDisplayName: string;
+  ownerEmail: string | null;
+  payoutMethod: string | null;
+  payoutAccount: string;
+  payoutName: string;
+  balance: number;
+  currency: string;
+};
+
+/** What every shop with unpaid earnings is currently owed. */
+export const listPayoutBalances = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .handler(async () => {
+    const sql = await getSql();
+    const rows = await sql.query<{
+      shop_id: number;
+      username: string;
+      display_name: string;
+      owner_email: string | null;
+      payout_method: string | null;
+      payout_account: string | null;
+      payout_name: string | null;
+      balance: unknown;
+      currency: string;
+    }>(`
+      select
+        s.id as shop_id,
+        s.username,
+        s.display_name,
+        u.email as owner_email,
+        s.payout_method,
+        s.payout_account,
+        s.payout_name,
+        sum(o.net_amount) as balance,
+        o.currency
+      from orders o
+      join shops s on s.id = o.shop_id
+      left join "user" u on u.id = s.user_id
+      where ${REAL_PAID_SQL.replace(/orders/g, "o")} and o.payout_id is null
+      group by s.id, s.username, s.display_name, u.email, s.payout_method, s.payout_account, s.payout_name, o.currency
+      having sum(o.net_amount) > 0
+      order by sum(o.net_amount) desc
+    `);
+    return rows.map((row): PayoutBalance => ({
+      shopId: row.shop_id,
+      shopUsername: row.username,
+      shopDisplayName: row.display_name,
+      ownerEmail: row.owner_email,
+      payoutMethod: row.payout_method,
+      payoutAccount: row.payout_account ?? "",
+      payoutName: row.payout_name ?? "",
+      balance: money(row.balance),
+      currency: row.currency || "USD",
+    }));
+  });
+
+export const recordPayout = createServerFn({ method: "POST" })
+  .middleware([adminMiddleware])
+  .validator((input: { shopId: number; reference?: string; note?: string }) => ({
+    shopId: Number(input.shopId),
+    reference: (input.reference ?? "").trim().slice(0, 120),
+    note: (input.note ?? "").trim().slice(0, 500),
+  }))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const shops = await sql.query<{ user_id: string; payout_method: string | null; payout_account: string | null }>(
+      "select user_id, payout_method, payout_account from shops where id = $1 limit 1",
+      [data.shopId],
+    );
+    const shop = shops[0];
+    if (!shop) throw new Error("Shop not found.");
+
+    // Everything still owed to this shop, locked by claiming it below so a
+    // second click (or a concurrent request) can't pay it out twice.
+    const owed = await sql.query<OrderRow>(
+      `select * from orders o where o.shop_id = $1 and ${REAL_PAID_SQL} and o.payout_id is null`,
+      [data.shopId],
+    );
+    if (owed.length === 0) throw new Error("Nothing is owed to this shop right now.");
+    const amount = owed.reduce((sum, row) => sum + money(row.net_amount), 0);
+    const currency = owed[0].currency || "USD";
+
+    const payouts = await sql.query<PayoutRow>(
+      `insert into payouts (shop_id, user_id, amount, currency, method, account, reference, note, created_by)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       returning *`,
+      [
+        data.shopId,
+        shop.user_id,
+        amount,
+        currency,
+        shop.payout_method ?? "",
+        shop.payout_account ?? "",
+        data.reference,
+        data.note,
+        context.userId,
+      ],
+    );
+    const payout = payouts[0];
+    await sql.query(
+      `update orders set payout_id = $1 where id = any($2::int[])`,
+      [payout.id, owed.map((row) => row.id)],
+    );
+    return mapPayout(payout);
+  });
+
+export const listPayoutsForShop = createServerFn({ method: "GET" })
+  .middleware([adminMiddleware])
+  .validator((shopId: number) => Number(shopId))
+  .handler(async ({ data: shopId }) => {
+    const sql = await getSql();
+    const rows = await sql<PayoutRow>`
+      select * from payouts where shop_id = ${shopId} order by created_at desc limit 50
+    `;
+    return rows.map(mapPayout);
   });
 
 export const getReservedUsernames = createServerFn({ method: "GET" })

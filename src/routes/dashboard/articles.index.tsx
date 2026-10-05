@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { DashboardPage } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
+import { errMsg } from "@/lib/errors";
 import { ProductCover } from "@/components/product-cover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/card";
@@ -16,11 +17,17 @@ export const Route = createFileRoute("/dashboard/articles/")({ component: Articl
 
 function ArticlesPage() {
   const [articles, setArticles] = useState<Product[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function reload() {
+    setLoadError(null);
     listMyProducts()
       .then((rows) => setArticles(rows.filter((row) => row.kind === "article")))
-      .catch(() => setArticles([]));
+      .catch((error) => setLoadError(errMsg(error)));
+  }
+
+  useEffect(() => {
+    reload();
   }, []);
 
   return (
@@ -36,7 +43,9 @@ function ArticlesPage() {
         </Button>
       }
     >
-      {articles === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={reload} />
+      ) : articles === null ? (
         <div className="grid gap-3">
           <Skeleton className="h-24 rounded-xl" />
           <Skeleton className="h-24 rounded-xl" />
@@ -56,7 +65,7 @@ function ArticlesPage() {
           {articles.map((article) => (
             <li key={article.id}>
               <Link
-                to="/dashboard/products/$id"
+                to="/dashboard/articles/$id"
                 params={{ id: String(article.id) }}
                 className="flex min-w-0 gap-4 rounded-xl border border-border bg-surface p-3 shadow-soft transition-[transform] duration-150 hover:-translate-y-0.5 sm:p-4"
               >

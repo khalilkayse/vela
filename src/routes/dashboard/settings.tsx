@@ -3,18 +3,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
 import { Button } from "@/components/ui/button";
-import { Badge, Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { Switch } from "@/components/ui/skeleton";
 import { ImageWell } from "@/components/image-well";
 import { UsernameInput } from "@/components/username-field";
-import { LAYOUTS, type ShopLayout } from "@/lib/constants";
+import { LAYOUTS, PAYOUT_METHODS, type PayoutMethod, type ShopLayout } from "@/lib/constants";
 import { LayoutSketch } from "@/components/layout-sketch";
 import { errMsg } from "@/lib/errors";
-import { disconnectSifalo, getMyPayPolicy, saveSifaloCredentials, updateShop } from "@/lib/server/shops";
+import { updatePayoutDetails, updateShop } from "@/lib/server/shops";
+import { listMyPayouts } from "@/lib/server/orders";
+import type { Payout } from "@/lib/types";
 import { removeProductFile } from "@/lib/server/files";
 import { uploadMedia } from "@/lib/upload";
 import { formatCountry } from "@/lib/geo";
+import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard/settings")({ component: SettingsPage });
@@ -36,21 +39,19 @@ function SettingsPage() {
   const [published, setPublished] = useState(shop.published);
   const [country, setCountry] = useState(shop.country ?? "");
   const [avatarUrl, setAvatarUrl] = useState(shop.avatarUrl);
-  const [apiKey, setApiKey] = useState("");
-  const [apiPassword, setApiPassword] = useState("");
   const [saving, setSaving] = useState(false);
-  const [savingPay, setSavingPay] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [payPolicy, setPayPolicy] = useState<{
-    platformCollects: boolean;
-    allowOwnKeys: boolean;
-    canConnectOwnKeys: boolean;
-  } | null>(null);
+
+  const [payoutMethod, setPayoutMethod] = useState<PayoutMethod | "">(shop.payoutMethod ?? "");
+  const [payoutAccount, setPayoutAccount] = useState(shop.payoutAccount);
+  const [payoutName, setPayoutName] = useState(shop.payoutName);
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [payouts, setPayouts] = useState<Payout[] | null>(null);
 
   useEffect(() => {
-    getMyPayPolicy()
-      .then(setPayPolicy)
-      .catch(() => setPayPolicy({ platformCollects: false, allowOwnKeys: true, canConnectOwnKeys: true }));
+    listMyPayouts()
+      .then(setPayouts)
+      .catch(() => setPayouts([]));
   }, []);
 
   async function onSave(event: React.FormEvent) {
@@ -76,6 +77,7 @@ function SettingsPage() {
         },
       });
       setShop(next);
+      setUsername(next.username);
       toast.success("Shop saved.");
     } catch (error) {
       toast.error(errMsg(error));
@@ -112,39 +114,24 @@ function SettingsPage() {
     }
   }
 
-  async function onConnectPay(event: React.FormEvent) {
+  async function onSavePayout(event: React.FormEvent) {
     event.preventDefault();
-    setSavingPay(true);
+    setSavingPayout(true);
     try {
-      const result = await saveSifaloCredentials({ data: { apiKey, apiPassword } });
-      await reloadShop();
-      setApiPassword("");
-      if (result.ok) toast.success(result.message);
-      else toast.error(result.message);
+      const next = await updatePayoutDetails({
+        data: { method: payoutMethod, account: payoutAccount, name: payoutName },
+      });
+      setShop(next);
+      toast.success("Payout details saved.");
     } catch (error) {
       toast.error(errMsg(error));
     } finally {
-      setSavingPay(false);
-    }
-  }
-
-  async function onDisconnect() {
-    setSavingPay(true);
-    try {
-      await disconnectSifalo();
-      await reloadShop();
-      setApiKey("");
-      setApiPassword("");
-      toast.success("Sifalo Pay disconnected.");
-    } catch (error) {
-      toast.error(errMsg(error));
-    } finally {
-      setSavingPay(false);
+      setSavingPayout(false);
     }
   }
 
   return (
-    <DashboardPage title="Settings" description="Your public page, username, terms, and Sifalo Pay.">
+    <DashboardPage title="Settings" description="Your public page, username, terms, and payouts.">
       <form onSubmit={onSave} className="space-y-5 rounded-xl border border-border bg-surface p-5 shadow-soft sm:p-6">
         <h2 className="text-base font-semibold text-fg">Profile</h2>
         <ImageWell
@@ -229,75 +216,76 @@ function SettingsPage() {
         >
           <Textarea value={terms} onChange={(e) => setTerms(e.target.value)} maxLength={8000} />
         </Field>
-        <Switch checked={published} onCheckedChange={setPublished} label="Published — listed on Discover and reachable at /you" />
+        <Switch
+          checked={published}
+          onCheckedChange={setPublished}
+          label={`Published — listed on Discover and reachable at /${username || "you"}`}
+        />
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save profile"}
         </Button>
       </form>
 
       <Card className="mt-8 p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-fg">Sifalo Pay</h2>
-            <p className="mt-1 max-w-xl text-sm text-muted">
-              Get your API username and password from{" "}
-              <a
-                className="font-medium text-fg underline-offset-4 hover:underline"
-                href="https://sifalopay.com"
-                target="_blank"
-                rel="noreferrer"
-              >
-                sifalopay.com
-              </a>
-              , then paste them here. Checkout goes to your Sifalo Pay account — Kart never holds the money.
-            </p>
+        <h2 className="text-base font-semibold text-fg">Payouts</h2>
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          Checkout runs through Kart's Sifalo Pay account, so we need to know where to send what
+          you earn. Kart's fee comes out of each sale before it's added to your balance — see your
+          balance on the Home page.
+        </p>
+        <form onSubmit={onSavePayout} className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Field label="Payout method">
+            <select
+              value={payoutMethod}
+              onChange={(e) => setPayoutMethod(e.target.value as PayoutMethod)}
+              className="h-11 w-full rounded-md border border-border bg-surface px-3.5 text-sm text-fg"
+            >
+              <option value="">Choose a method</option>
+              {PAYOUT_METHODS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Account" hint="Phone number for mobile wallets, or account details for bank transfer.">
+            <Input value={payoutAccount} onChange={(e) => setPayoutAccount(e.target.value)} placeholder="252 6xx xxx xxx" />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Name on account">
+              <Input value={payoutName} onChange={(e) => setPayoutName(e.target.value)} placeholder="As it appears on the wallet or account" />
+            </Field>
           </div>
-          {shop.checkoutLive ? (
-            <Badge tone="success">Live checkout</Badge>
-          ) : shop.hasSifaloCredentials ? (
-            <Badge tone={shop.sifaloConnected ? "success" : "warn"}>
-              {shop.sifaloConnected ? "Connected" : "Saved"}
-            </Badge>
-          ) : (
-            <Badge>Not connected</Badge>
-          )}
-        </div>
-        {payPolicy && !payPolicy.canConnectOwnKeys ? (
-          <p className="mt-6 rounded-lg border border-border bg-bg px-4 py-3 text-sm text-muted">
-            Kart is collecting with the platform Sifalo Pay account for this shop.
-            Ask the operator to enable “Allow own Sifalo keys” if you need to connect yours.
-          </p>
-        ) : (
-        <form onSubmit={onConnectPay} className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Field label="API username">
-            <Input
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              autoComplete="off"
-              placeholder={shop.hasSifaloCredentials ? "Saved — enter to replace" : "From sifalopay.com"}
-              required
-            />
-          </Field>
-          <Field label="API password">
-            <Input
-              type="password"
-              value={apiPassword}
-              onChange={(e) => setApiPassword(e.target.value)}
-              autoComplete="new-password"
-              required
-            />
-          </Field>
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <Button type="submit" disabled={savingPay}>
-              {savingPay ? "Checking…" : "Save and verify"}
+          <div className="sm:col-span-2">
+            <Button type="submit" disabled={savingPayout}>
+              {savingPayout ? "Saving…" : "Save payout details"}
             </Button>
-            {shop.hasSifaloCredentials ? (
-              <Button type="button" variant="secondary" disabled={savingPay} onClick={onDisconnect}>
-                Disconnect
-              </Button>
-            ) : null}
           </div>
         </form>
+      </Card>
+
+      <Card className="mt-8 p-5 sm:p-6">
+        <h2 className="text-base font-semibold text-fg">Payout history</h2>
+        {payouts === null ? (
+          <p className="mt-3 text-sm text-muted">Loading…</p>
+        ) : payouts.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">No payouts yet. They show up here once Kart sends one.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-border">
+            {payouts.map((payout) => (
+              <li key={payout.id} className="flex items-center justify-between gap-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-fg">{new Date(payout.createdAt).toLocaleDateString()}</p>
+                  {payout.reference ? (
+                    <p className="truncate text-xs text-muted">Ref {payout.reference}</p>
+                  ) : null}
+                </div>
+                <p className="shrink-0 tabular-nums text-sm font-semibold text-fg">
+                  {formatPrice(payout.amount, payout.currency)}
+                </p>
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
     </DashboardPage>
