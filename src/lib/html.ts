@@ -6,11 +6,13 @@ export function htmlToPlain(html: string): string {
     .replace(/<\/(p|div|h1|h2|h3|li|blockquote)>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
-    .replace(/&/gi, "&")
-    .replace(/</gi, "<")
-    .replace(/>/gi, ">")
-    .replace(/"/gi, '"')
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    // `&amp;` must be decoded last — decoding it first would turn a literal
+    // "&amp;lt;" back into "&lt;" and then (wrongly) into "<" above.
+    .replace(/&amp;/gi, "&")
     .replace(/\s+/g, " ")
     .trim();
 }

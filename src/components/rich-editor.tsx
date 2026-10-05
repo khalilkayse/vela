@@ -62,7 +62,12 @@ export function RichEditor({
       const start = initialRef.current.trim();
       if (start) instance.clipboard.dangerouslyPasteHTML(start);
       instance.on("text-change", () => {
-        const html = instance.root.innerHTML;
+        // `getSemanticHTML()` renders lists as real `<ul>`/`<ol>` — Quill's
+        // own `root.innerHTML` instead writes bullets as
+        // `<ol><li data-list="bullet">`, and the server sanitizer (which
+        // doesn't allow `data-list`) turns every bullet list into a
+        // numbered one.
+        const html = instance.getSemanticHTML();
         const empty = html === "<p><br></p>" || html === "<p></p>" || html === "";
         onChangeRef.current(empty ? "" : html);
       });

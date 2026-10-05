@@ -1,8 +1,12 @@
-import type {
-  InputHTMLAttributes,
-  LabelHTMLAttributes,
-  ReactNode,
-  TextareaHTMLAttributes,
+import {
+  cloneElement,
+  isValidElement,
+  useId,
+  type InputHTMLAttributes,
+  type LabelHTMLAttributes,
+  type ReactElement,
+  type ReactNode,
+  type TextareaHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -59,10 +63,22 @@ export function Field({
   hint?: string;
   children: ReactNode;
 }) {
+  const generatedId = useId();
+  // Clicking the label should focus the field — give the control an id (if
+  // it doesn't already have one) and point the label at it, instead of
+  // relying on implicit wrapping (there is none here; `Label` and the
+  // control are siblings).
+  const control =
+    isValidElement(children) && !(children as ReactElement<{ id?: string }>).props.id
+      ? cloneElement(children as ReactElement<{ id?: string }>, { id: generatedId })
+      : children;
+  const controlId =
+    isValidElement(children) ? (children as ReactElement<{ id?: string }>).props.id ?? generatedId : undefined;
+
   return (
     <div>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={controlId}>{label}</Label>
+      {control}
       {hint ? <p className="mt-1.5 text-xs text-muted">{hint}</p> : null}
     </div>
   );

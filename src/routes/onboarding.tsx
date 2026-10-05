@@ -25,14 +25,17 @@ function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    // Depending on `user` itself would refetch on every render — see the
+    // same fix in dashboard-shell.tsx.
+    if (!userId) return;
     getMyShop()
       .then((shop) => {
         if (shop) void navigate({ to: "/dashboard" });
       })
       .catch(() => undefined);
-  }, [user, navigate]);
+  }, [userId, navigate]);
 
   if (isPending) {
     return <div className="min-h-screen bg-bg" />;

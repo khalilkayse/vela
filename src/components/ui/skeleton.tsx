@@ -10,16 +10,20 @@ export function Switch({
   checked,
   onCheckedChange,
   label,
+  ariaLabel,
 }: {
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
   label?: string;
+  /** For switches with no visible label text (e.g. inline in a list row). */
+  ariaLabel?: string;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={label ? undefined : ariaLabel}
       onClick={() => onCheckedChange(!checked)}
       className="inline-flex items-center gap-2"
     >
