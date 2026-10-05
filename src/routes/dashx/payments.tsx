@@ -266,7 +266,7 @@ function DashxPayments() {
           </p>
         </Card>
 
-        <Button type="submit" disabled={!loaded || saving}>
+        <Button type="submit" disabled={!loaded || Boolean(loadError) || saving}>
           {saving ? "Saving…" : "Save payments"}
         </Button>
       </form>

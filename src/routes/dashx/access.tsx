@@ -19,10 +19,12 @@ function DashxAccess() {
   const [lockedNames, setLockedNames] = useState<string[]>([]);
   const [nameDraft, setNameDraft] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const codes = useMemo(() => allCountryCodes(), []);
 
-  useEffect(() => {
+  function load() {
+    setLoadError(null);
     Promise.all([getAccessSettings(), getReservedUsernames()])
       .then(([access, names]) => {
         setBlocked(access.blockedCountries);
@@ -31,8 +33,16 @@ function DashxAccess() {
         setLockedNames(names.locked);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
-  }, []);
+      .catch((error) => {
+        // A failed load must not leave Save enabled on empty/default state —
+        // that would silently wipe blocked countries and reserved names on
+        // the next save.
+        setLoadError(errMsg(error));
+        setLoaded(true);
+      });
+  }
+
+  useEffect(load, []);
 
   function addDraft() {
     const next = parseCountryList(draft);
@@ -79,6 +89,14 @@ function DashxAccess() {
       title="Access"
       description="Recorded country comes from Cloudflare and similar proxy headers (CF-IPCountry). Unknown visitors fall back to the default below. Blocked countries cannot create new accounts — existing ones can still sign in."
     >
+      {loadError ? (
+        <Card className="mb-6 border-danger/30 bg-danger/5 p-5">
+          <p className="text-sm text-danger">Could not load access settings: {loadError}</p>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={load}>
+            Try again
+          </Button>
+        </Card>
+      ) : null}
       <form onSubmit={onSave} className="space-y-6">
         <Card className="p-6">
           <h2 className="text-base font-semibold text-fg">Default shop country</h2>
@@ -190,7 +208,7 @@ function DashxAccess() {
           </div>
         </Card>
 
-        <Button type="submit" disabled={!loaded || saving}>
+        <Button type="submit" disabled={!loaded || Boolean(loadError) || saving}>
           {saving ? "Saving…" : "Save access"}
         </Button>
       </form>

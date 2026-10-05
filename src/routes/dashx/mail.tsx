@@ -20,10 +20,12 @@ function DashxMail() {
   const [secure, setSecure] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  useEffect(() => {
+  function load() {
+    setLoadError(null);
     getSmtpSettings()
       .then((smtp) => {
         setHost(smtp.host);
@@ -35,8 +37,13 @@ function DashxMail() {
         setHasPassword(smtp.hasPassword);
         setLoaded(true);
       })
-      .catch(() => setLoaded(true));
-  }, []);
+      .catch((error) => {
+        setLoadError(errMsg(error));
+        setLoaded(true);
+      });
+  }
+
+  useEffect(load, []);
 
   async function onSave(event: React.FormEvent) {
     event.preventDefault();
@@ -80,6 +87,14 @@ function DashxMail() {
       title="Email"
       description="SMTP for confirmation, password reset, and the shop welcome note. Leave empty until you are ready — sign-up still works."
     >
+      {loadError ? (
+        <Card className="mb-6 border-danger/30 bg-danger/5 p-5">
+          <p className="text-sm text-danger">Could not load SMTP settings: {loadError}</p>
+          <Button variant="secondary" size="sm" className="mt-3" onClick={load}>
+            Try again
+          </Button>
+        </Card>
+      ) : null}
       <Card className="p-6">
         <form onSubmit={onSave} className="grid gap-4 sm:grid-cols-2">
           <Field label="Host">
@@ -116,10 +131,10 @@ function DashxMail() {
             Use TLS (port 465)
           </label>
           <div className="flex flex-wrap gap-3 sm:col-span-2">
-            <Button type="submit" disabled={!loaded || saving}>
+            <Button type="submit" disabled={!loaded || Boolean(loadError) || saving}>
               {saving ? "Saving…" : "Save SMTP"}
             </Button>
-            <Button type="button" variant="secondary" disabled={!loaded || testing} onClick={() => void onTest()}>
+            <Button type="button" variant="secondary" disabled={!loaded || Boolean(loadError) || testing} onClick={() => void onTest()}>
               {testing ? "Sending…" : "Send test"}
             </Button>
           </div>
