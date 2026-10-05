@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { DashboardPage, useShop } from "@/components/dashboard-shell";
-import { EmptyState } from "@/components/empty-state";
+import { EmptyState, ErrorState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
@@ -25,14 +25,16 @@ function PageEditor() {
   const [editTitle, setEditTitle] = useState("");
   const [editUrl, setEditUrl] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function reload() {
+    setLoadError(null);
     const rows = await listMyBlocks();
     setBlocks(rows);
   }
 
   useEffect(() => {
-    reload().catch(() => setBlocks([]));
+    reload().catch((error) => setLoadError(errMsg(error)));
   }, []);
 
   function selectKind(next: "link" | "heading") {
@@ -175,7 +177,9 @@ function PageEditor() {
         </Button>
       </form>
 
-      {blocks === null ? (
+      {loadError ? (
+        <ErrorState message={loadError} onRetry={() => void reload().catch((error) => setLoadError(errMsg(error)))} />
+      ) : blocks === null ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : blocks.length === 0 ? (
         <EmptyState
