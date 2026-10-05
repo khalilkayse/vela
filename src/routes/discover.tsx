@@ -16,7 +16,7 @@ function Discover() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Discover</p>
         <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-fg">Shops on Kart</h1>
         <p className="mt-2 max-w-xl text-sm text-muted">
-          Public shops published by makers using Sifalo Pay for checkout.
+          Public shops from independent makers. Checkout on every page runs through Sifalo Pay.
         </p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {shops.map((shop) => (
@@ -26,9 +26,17 @@ function Discover() {
               params={{ username: shop.username }}
               className="rounded-xl border border-border bg-surface p-5 shadow-soft transition-[transform] duration-150 hover:-translate-y-0.5"
             >
-              <span className="grid size-12 place-items-center rounded-xl bg-primary font-display text-lg font-bold text-primary-fg">
-                {shop.avatarInitials}
-              </span>
+              {shop.avatarUrl ? (
+                <img
+                  src={shop.avatarUrl}
+                  alt=""
+                  className="size-12 rounded-xl object-cover"
+                />
+              ) : (
+                <span className="grid size-12 place-items-center rounded-xl bg-primary font-display text-lg font-bold text-primary-fg">
+                  {shop.avatarInitials}
+                </span>
+              )}
               <p className="mt-4 font-semibold text-fg">{shop.displayName}</p>
               <p className="mt-1 text-sm text-muted">{shop.tagline || `/${shop.username}`}</p>
             </Link>

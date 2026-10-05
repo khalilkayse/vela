@@ -1,7 +1,9 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { finalizeSifaloReturn } from "@/lib/server/checkout";
 import { getPublicOrder } from "@/lib/server/orders";
 import { formatPrice } from "@/lib/utils";
 
@@ -10,8 +12,48 @@ export const Route = createFileRoute("/pay/success/$orderRef")({
   component: PaySuccess,
 });
 
+const POLL_MS = 5_000;
+const POLL_ATTEMPTS = 24; // ~2 minutes
+
 function PaySuccess() {
-  const data = Route.useLoaderData();
+  const initial = Route.useLoaderData();
+  const { orderRef } = Route.useParams();
+  const [data, setData] = useState(initial);
+  const [checking, setChecking] = useState(false);
+
+  async function recheck() {
+    setChecking(true);
+    try {
+      await finalizeSifaloReturn({ data: { orderId: orderRef } });
+      const next = await getPublicOrder({ data: orderRef });
+      setData(next);
+    } catch {
+      /* stays pending — the visitor can retry, or the next poll tick will */
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  const statusRef = useRef(data?.order.status);
+  statusRef.current = data?.order.status;
+  useEffect(() => {
+    if (statusRef.current !== "pending") return;
+    let attempts = 0;
+    const interval = window.setInterval(() => {
+      attempts += 1;
+      if (attempts > POLL_ATTEMPTS || statusRef.current !== "pending") {
+        window.clearInterval(interval);
+        return;
+      }
+      void recheck();
+    }, POLL_MS);
+    return () => window.clearInterval(interval);
+    // `recheck` is recreated each render but its identity doesn't matter
+    // here — this effect only needs to (re)start the poll loop when the
+    // order ref changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderRef]);
+
   if (!data) {
     return (
       <main className="grid min-h-screen place-items-center bg-bg px-4">
@@ -19,20 +61,22 @@ function PaySuccess() {
       </main>
     );
   }
-  const { order, delivery } = data;
+  const { order, delivery, shop, productUrl } = data;
   const paid = order.status === "paid";
+  const pending = order.status === "pending";
+  const shopHref = shop ? `/${shop.username}` : "/";
   return (
     <main className="mx-auto grid min-h-screen max-w-md place-content-center px-4 py-16">
       <Logo />
       <h1 className="mt-8 font-display text-4xl tracking-tight text-fg">
-        {paid ? "You are in." : order.status === "pending" ? "Payment pending" : "Payment did not go through"}
+        {paid ? "You are in." : pending ? "Payment pending" : "Payment did not go through"}
       </h1>
       <p className="mt-3 text-sm text-muted">
         {paid
-          ? order.demo
-            ? "This was a demo checkout — the merchant has not connected Sifalo Pay yet."
-            : "Sifalo Pay confirmed this order. Delivery details are below."
-          : "If you were charged, wait a moment and refresh, or contact the seller with your order reference."}
+          ? "Sifalo Pay confirmed this order. Delivery details are below."
+          : pending
+            ? "Still waiting on confirmation from Sifalo Pay — this page checks automatically."
+            : "If you were charged, wait a moment and check again, or contact the seller with your order reference."}
       </p>
       <Card className="mt-8 p-5">
         <p className="text-xs uppercase tracking-[0.12em] text-muted">Order</p>
@@ -42,6 +86,11 @@ function PaySuccess() {
           {formatPrice(order.amount, order.currency)}
         </p>
       </Card>
+      {!paid ? (
+        <Button className="mt-4 w-full" variant="secondary" disabled={checking} onClick={() => void recheck()}>
+          {checking ? "Checking…" : "Check again"}
+        </Button>
+      ) : null}
       {paid && data.readUrl ? (
         <Button asChild className="mt-4 w-full">
           <a href={data.readUrl}>Read the article</a>
@@ -72,7 +121,7 @@ function PaySuccess() {
         </Card>
       ) : null}
       <Button asChild variant="ghost" className="mt-6">
-        <Link to="/">Back to Kart</Link>
+        <a href={productUrl ?? shopHref}>{shop ? `Back to ${shop.displayName}` : "Back to Kart"}</a>
       </Button>
     </main>
   );

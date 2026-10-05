@@ -28,16 +28,14 @@ export function AuthChip({ className }: { className?: string }) {
     );
   }
   return (
-    <div className={cn("flex items-center gap-3", className)}>
+    <div className={cn("flex min-w-0 items-center gap-3", className)}>
       <Link
         to="/dashboard"
-        className="hidden h-11 items-center rounded-md px-3 text-sm font-medium text-fg hover:bg-bg sm:inline-flex"
+        className="inline-flex h-11 shrink-0 items-center rounded-md px-3 text-sm font-medium text-fg hover:bg-bg"
       >
         Dashboard
       </Link>
-      <div className="[&_span.text-sm]:hidden sm:[&_span.text-sm]:inline">
-        <UserButton />
-      </div>
+      <UserButton />
     </div>
   );
 }

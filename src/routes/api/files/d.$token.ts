@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSql } from "@/lib/db";
 import { verifyDownloadGrant } from "@/lib/download-token";
-import { signedGetUrl } from "@/lib/storage";
+import { contentDisposition, signedGetUrl } from "@/lib/storage";
 
 export const Route = createFileRoute("/api/files/d/$token")({
   server: {
@@ -52,7 +52,7 @@ async function handleDownload({ params }: { params: { token: string } }) {
     return new Response(blob as unknown as BodyInit, {
       headers: {
         "Content-Type": file.content_type || "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${file.filename.replace(/"/g, "")}"`,
+        "Content-Disposition": contentDisposition(file.filename),
       },
     });
   } catch (err) {

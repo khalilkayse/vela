@@ -118,7 +118,7 @@ export async function signedGetUrl(key: string, filename: string, seconds = 90):
     new GetObjectCommand({
       Bucket: config.bucket,
       Key: key,
-      ResponseContentDisposition: `attachment; filename="${filename.replace(/"/g, "")}"`,
+      ResponseContentDisposition: contentDisposition(filename),
     }),
     { expiresIn: seconds },
   );
@@ -128,6 +128,18 @@ export async function signedGetUrl(key: string, filename: string, seconds = 90):
 export function publicObjectUrl(key: string, config: S3Config): string | null {
   if (!config.cdnBase) return null;
   return `${config.cdnBase}/${key.replace(/^\/+/, "")}`;
+}
+
+/**
+ * A `Content-Disposition` value safe for any filename. Headers are restricted
+ * to Latin-1 (ByteString) — a plain `filename="…"` with an em-dash or Arabic
+ * characters throws when the header is actually sent. RFC 5987's
+ * `filename*=UTF-8''…` carries the real name; the quoted `filename=` is an
+ * ASCII fallback for browsers that don't look at `filename*`.
+ */
+export function contentDisposition(filename: string): string {
+  const ascii = filename.replace(/[^\x20-\x7e]/g, "_").replace(/"/g, "'") || "file";
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
 export function objectKey(

@@ -16,6 +16,12 @@ export const Route = createRootRoute({
         content: APP_PITCH,
       },
       { name: "theme-color", content: BRAND_HEX.primary },
+      // Default share-card image. Shop and product pages override og:title
+      // / og:description / og:image with their own `head()`.
+      { property: "og:title", content: APP_NAME },
+      { property: "og:description", content: APP_PITCH },
+      { property: "og:image", content: "/og.jpg" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
