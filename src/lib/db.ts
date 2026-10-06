@@ -48,6 +48,7 @@ const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
+  __pgliteAdminBootstrap__?: Promise<void>;
 };
 
 /**
@@ -160,6 +161,22 @@ async function createPgliteSql(): Promise<Sql> {
     .then(migrate);
   globalRef.__pgliteMigrateChain__ = pass;
   await pass;
+
+  // The deployed path creates the /dashx super admin from scripts/migrate.mjs.
+  // PGLite never runs that script, so without this nobody could open /dashx in
+  // dev/preview. Credentials are printed to the server log.
+  globalRef.__pgliteAdminBootstrap__ ??= (async () => {
+    const { ensureSuperAdmin } = await import("../../scripts/bootstrap-admin.mjs");
+    await ensureSuperAdmin({
+      query: async (text: string, params?: unknown[]) => {
+        const result = await pg.query(text, params);
+        return { rows: result.rows, rowCount: result.rows.length };
+      },
+    } as never);
+  })().catch((err) => {
+    console.warn("[dashx] could not create the super admin:", err);
+  });
+  await globalRef.__pgliteAdminBootstrap__;
 
   return toSql(async <T>(text: string, params: unknown[]) => {
     const result = await pg.query<T>(text, params);

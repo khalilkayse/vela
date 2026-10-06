@@ -104,6 +104,11 @@ export async function ensureSuperAdmin(client) {
   printCreds(email, password, false);
 }
 
+/**
+ * @param {string} email
+ * @param {string} password
+ * @param {boolean} rotated
+ */
 function printCreds(email, password, rotated) {
   console.log("============================================================");
   console.log(rotated ? "[dashx] Super admin password rotated." : "[dashx] Super admin created (first boot only).");
